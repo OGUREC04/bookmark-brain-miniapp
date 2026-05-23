@@ -168,8 +168,19 @@ export function TaskListEditor({
     [onToast]
   );
 
-  // Пустой список без активного undo — нечего показывать (US-4 добавит «+ пункт»).
-  if (tasks.length === 0 && !deleted) return null;
+  // US-4: добавить новый пункт в конец списка.
+  const addTask = useCallback(
+    (raw: string) => {
+      const text = raw.trim().slice(0, MAX_TASK_LEN);
+      if (!text) return;
+      const next = [...tasksRef.current, { text, done: false, deadline: null }];
+      tasksRef.current = next;
+      setTasks(next);
+      scheduleCommit(next);
+      hapticNotify("success");
+    },
+    [scheduleCommit]
+  );
 
   return (
     <>
@@ -184,6 +195,7 @@ export function TaskListEditor({
             onCopy={() => copyText(t.text)}
           />
         ))}
+        <AddRow onAdd={addTask} />
       </div>
 
       {deleted &&
@@ -470,5 +482,121 @@ function IconBtn({
     >
       {cloneElement(icon, { size: 15, sw: 1.7 } as never)}
     </button>
+  );
+}
+
+// US-4: строка добавления нового пункта.
+function AddRow({ onAdd }: { onAdd: (text: string) => void }) {
+  const [active, setActive] = useState(false);
+  const [draft, setDraft] = useState("");
+  const inputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (active) inputRef.current?.focus();
+  }, [active]);
+
+  // Enter — добавить и остаться в режиме для следующего пункта.
+  const submitKeep = useCallback(() => {
+    const t = draft.trim();
+    if (!t) return;
+    onAdd(t);
+    setDraft("");
+    inputRef.current?.focus();
+  }, [draft, onAdd]);
+
+  // blur — добавить если есть текст, затем закрыть; пустой → отмена.
+  const submitClose = useCallback(() => {
+    const t = draft.trim();
+    if (t) onAdd(t);
+    setDraft("");
+    setActive(false);
+  }, [draft, onAdd]);
+
+  const cancel = useCallback(() => {
+    setDraft("");
+    setActive(false);
+  }, []);
+
+  const leadBox = (
+    <span
+      style={{
+        width: 28,
+        height: 28,
+        margin: "-4px 0 0 -5px",
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "var(--fg-3)",
+      }}
+    >
+      {cloneElement(Icons.plus, { size: 15, sw: 1.8 } as never)}
+    </span>
+  );
+
+  if (!active) {
+    return (
+      <button
+        type="button"
+        onClick={() => setActive(true)}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
+          width: "100%",
+          textAlign: "left",
+          background: "transparent",
+          border: "none",
+          padding: "5px 4px",
+          margin: 0,
+          borderRadius: 8,
+          cursor: "pointer",
+          color: "var(--fg-3)",
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        {leadBox}
+        <span style={{ fontSize: 14.5, lineHeight: 1.4 }}>добавить пункт</span>
+      </button>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 4px", borderRadius: 8 }}>
+      {leadBox}
+      <input
+        ref={inputRef}
+        className="task-edit-input"
+        value={draft}
+        maxLength={MAX_TASK_LEN}
+        placeholder="новый пункт"
+        aria-label="новый пункт"
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={submitClose}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            submitKeep();
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            cancel();
+          }
+        }}
+        style={{
+          flex: 1,
+          minWidth: 0,
+          fontSize: 14.5,
+          lineHeight: 1.4,
+          fontFamily: "inherit",
+          color: "var(--fg-1)",
+          background: "var(--bg-surface-elev)",
+          border: "1px solid var(--border-2)",
+          borderRadius: 6,
+          padding: "1px 6px",
+          margin: "-2px -7px",
+          outline: "none",
+        }}
+      />
+    </div>
   );
 }
