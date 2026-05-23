@@ -5,6 +5,7 @@
    Дальше: US-3 (delete+undo), US-4 (add), US-5 (deadline).
    Все мутации — optimistic + debounce 400мс, revert при ошибке. */
 import { useCallback, useEffect, useRef, useState, cloneElement, type ReactElement } from "react";
+import { createPortal } from "react-dom";
 import { Icons, ExtraIcons } from "./icons";
 import { api, type Bookmark, type TaskItem } from "../../lib/api";
 import { hapticSelection, hapticNotify } from "../../lib/telegram";
@@ -37,6 +38,17 @@ export function TaskListEditor({
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingRef = useRef<TaskItem[] | null>(null);
   const aliveRef = useRef(true);
+
+  // Зеркало tasks для синхронного чтения вне state-апдейтера (StrictMode
+  // вызывает апдейтер дважды — сайд-эффекты делаем снаружи, не в нём).
+  const tasksRef = useRef<TaskItem[]>(tasks);
+  useEffect(() => {
+    tasksRef.current = tasks;
+  }, [tasks]);
+
+  // US-3: удалённый пункт для undo-snackbar (4 сек).
+  const [deleted, setDeleted] = useState<{ task: TaskItem; index: number } | null>(null);
+  const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const commit = useCallback(
     async (next: TaskItem[], silent = false) => {
@@ -78,6 +90,10 @@ export function TaskListEditor({
         timerRef.current = null;
         if (pendingRef.current) void commit(pendingRef.current, true);
       }
+      if (undoTimerRef.current) {
+        clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = null;
+      }
     };
   }, [commit]);
 
@@ -93,24 +109,51 @@ export function TaskListEditor({
     [scheduleCommit]
   );
 
-  // US-2: применить отредактированный текст. Пустой (после trim) → удалить пункт.
+  // US-2: применить отредактированный текст. Пустой (после trim) → удалить пункт
+  // (US-3: с undo-snackbar). Side-effects вне апдейтера — читаем tasksRef.
   const editText = useCallback(
     (index: number, raw: string) => {
       const text = raw.trim().slice(0, MAX_TASK_LEN);
-      setTasks((prev) => {
-        const current = prev[index];
-        if (!current || text === current.text) return prev; // нет изменений
-        const next =
-          text === ""
-            ? prev.filter((_, i) => i !== index)
-            : prev.map((t, i) => (i === index ? { ...t, text } : t));
+      const current = tasksRef.current[index];
+      if (!current || text === current.text) return; // нет изменений
+
+      if (text === "") {
+        const next = tasksRef.current.filter((_, i) => i !== index);
+        tasksRef.current = next;
+        setTasks(next);
         scheduleCommit(next);
-        return next;
-      });
-      hapticSelection();
+        hapticNotify("warning");
+        setDeleted({ task: current, index });
+        if (undoTimerRef.current) clearTimeout(undoTimerRef.current);
+        undoTimerRef.current = setTimeout(() => {
+          undoTimerRef.current = null;
+          setDeleted(null);
+        }, 4000);
+      } else {
+        const next = tasksRef.current.map((t, i) => (i === index ? { ...t, text } : t));
+        tasksRef.current = next;
+        setTasks(next);
+        scheduleCommit(next);
+        hapticSelection();
+      }
     },
     [scheduleCommit]
   );
+
+  const undoDelete = useCallback(() => {
+    if (!deleted) return;
+    if (undoTimerRef.current) {
+      clearTimeout(undoTimerRef.current);
+      undoTimerRef.current = null;
+    }
+    const arr = tasksRef.current.slice();
+    arr.splice(Math.min(deleted.index, arr.length), 0, deleted.task);
+    tasksRef.current = arr;
+    setTasks(arr);
+    scheduleCommit(arr);
+    setDeleted(null);
+    hapticSelection();
+  }, [deleted, scheduleCommit]);
 
   const copyText = useCallback(
     (text: string) => {
@@ -125,21 +168,71 @@ export function TaskListEditor({
     [onToast]
   );
 
-  if (tasks.length === 0) return null;
+  // Пустой список без активного undo — нечего показывать (US-4 добавит «+ пункт»).
+  if (tasks.length === 0 && !deleted) return null;
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 4, margin: "0 0 14px" }}>
-      {tasks.map((t, i) => (
-        <TaskRow
-          key={i}
-          task={t}
-          index={i}
-          onToggle={() => toggle(i)}
-          onEdit={(text) => editText(i, text)}
-          onCopy={() => copyText(t.text)}
-        />
-      ))}
-    </div>
+    <>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4, margin: "0 0 14px" }}>
+        {tasks.map((t, i) => (
+          <TaskRow
+            key={i}
+            task={t}
+            index={i}
+            onToggle={() => toggle(i)}
+            onEdit={(text) => editText(i, text)}
+            onCopy={() => copyText(t.text)}
+          />
+        ))}
+      </div>
+
+      {deleted &&
+        createPortal(
+          <div
+            role="status"
+            style={{
+              position: "fixed",
+              left: "50%",
+              bottom: "calc(24px + env(safe-area-inset-bottom, 0px))",
+              transform: "translateX(-50%)",
+              zIndex: 200,
+              display: "flex",
+              alignItems: "center",
+              gap: 14,
+              padding: "10px 14px 10px 16px",
+              borderRadius: 999,
+              background: "rgba(28,22,18,0.92)",
+              color: "#FBF7EC",
+              fontFamily: "var(--font-ui)",
+              fontSize: 13,
+              fontWeight: 500,
+              letterSpacing: "-0.005em",
+              boxShadow: "0 6px 20px rgba(60,40,25,0.28)",
+              animation: "toastIn 200ms var(--ease-out, ease) both",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <span>пункт удалён</span>
+            <button
+              type="button"
+              onClick={undoDelete}
+              style={{
+                background: "transparent",
+                border: "none",
+                color: "#9DBE9D",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 600,
+                cursor: "pointer",
+                padding: 0,
+              }}
+            >
+              отменить
+            </button>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }
 
