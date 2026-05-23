@@ -10,9 +10,11 @@ import { formatRelativeDate } from "../lib/formatters";
 import { tagStop } from "../lib/tagPalette";
 
 function openLink(url: string) {
+  // Guard against javascript:/data: schemes sneaking in via stored bookmark.url.
+  if (!/^https?:\/\//i.test(url)) return;
   const tg = window.Telegram?.WebApp as { openLink?: (u: string) => void } | undefined;
   if (tg?.openLink) tg.openLink(url);
-  else window.open(url, "_blank", "noopener");
+  else window.open(url, "_blank", "noopener,noreferrer");
 }
 
 export function DetailScreen({
