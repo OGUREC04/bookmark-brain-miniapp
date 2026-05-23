@@ -145,7 +145,7 @@ export function DetailScreen({
           )}
 
           {isTaskList && (
-            <TaskListEditor bookmark={bookmark} onCommitted={onChanged} onError={onToast} />
+            <TaskListEditor bookmark={bookmark} onCommitted={onChanged} onError={onToast} onToast={onToast} />
           )}
 
           {bookmark.raw_text && bookmark.raw_text !== title && (

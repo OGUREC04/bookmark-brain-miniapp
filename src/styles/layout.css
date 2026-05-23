@@ -471,3 +471,9 @@
   outline: 2px solid var(--brand-primary, #7A9C7A);
   outline-offset: 2px;
 }
+
+/* Task editor inline input — visible text selection over the field. */
+.task-edit-input::selection {
+  background: var(--brand-primary, #7A9C7A);
+  color: var(--fg-on-brand, #fff);
+}
