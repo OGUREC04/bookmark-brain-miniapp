@@ -1,7 +1,7 @@
 /* Bottom Sheets — ported 1:1 from docs/design-system-miniapp/app/Sheets.jsx.
    Visual inline styles verbatim; data wired via props.
    Shared primitives used across all sheets. */
-import { useState, cloneElement, type ReactNode } from "react";
+import { useState, useEffect, cloneElement, type ReactNode } from "react";
 import { Icons } from "./icons";
 
 export function BottomSheet({
@@ -15,10 +15,20 @@ export function BottomSheet({
   paddingBottom?: number;
   height?: string;
 }) {
+  // Залочить скролл фона пока шторка открыта (иначе подложка скроллится под ней).
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, []);
+
   return (
     <>
       <div
         onClick={onDismiss}
+        onTouchMove={(e) => e.preventDefault()}
         style={{
           position: "fixed",
           inset: 0,
@@ -26,6 +36,7 @@ export function BottomSheet({
           backdropFilter: "blur(2px)",
           WebkitBackdropFilter: "blur(2px)",
           zIndex: 100,
+          touchAction: "none",
         }}
       />
       <div
