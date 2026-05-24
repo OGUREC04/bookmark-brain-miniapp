@@ -311,10 +311,18 @@ export const api = {
     history(limit = 20, days = 30): Promise<RemindersList> {
       return request(`/api/v1/reminders/history?limit=${limit}&days=${days}`);
     },
-    create(bookmarkId: string, fireAt: string): Promise<Reminder> {
+    create(
+      bookmarkId: string | null,
+      fireAt: string,
+      payload?: Record<string, unknown>
+    ): Promise<Reminder> {
       return request("/api/v1/reminders/", {
         method: "POST",
-        body: JSON.stringify({ bookmark_id: bookmarkId, fire_at: fireAt }),
+        body: JSON.stringify({
+          bookmark_id: bookmarkId,
+          fire_at: fireAt,
+          ...(payload ? { payload } : {}),
+        }),
       });
     },
     snooze(id: string, fireAt: string): Promise<Reminder> {

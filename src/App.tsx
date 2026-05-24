@@ -1,6 +1,6 @@
 /* Mini App shell — state-driven, DS-faithful (no router; one frame + sheets).
    Ported IA from docs/design-system-miniapp. */
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav, type NavTab } from "./components/ds/Nav";
 import { MysliScreen } from "./screens/Mysli";
 import { SearchScreen } from "./screens/SearchScreen";
@@ -19,6 +19,15 @@ import {
 import { api, type Bookmark, type Folder } from "./lib/api";
 import { targetOf, groupReminders } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
+
+type RemRow = {
+  id: string;
+  fire_at: string;
+  bookmark_id?: string | null;
+  bookmark_title: string | null;
+  bookmark_raw_text: string | null;
+  payload?: Record<string, unknown> | null;
+};
 
 type Sheet =
   | { type: "action"; target: SheetTarget; bookmark: Bookmark }
@@ -49,15 +58,10 @@ export function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  const [reminders, setReminders] = useState<
-    {
-      id: string;
-      fire_at: string;
-      bookmark_title: string | null;
-      bookmark_raw_text: string | null;
-      payload?: Record<string, unknown> | null;
-    }[]
-  >([]);
+  const [reminders, setReminders] = useState<RemRow[]>([]);
+  // Удалённое напоминание для undo-тоста (4 сек).
+  const [remUndo, setRemUndo] = useState<RemRow | null>(null);
+  const remUndoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [folders, setFolders] = useState<Folder[]>([]);
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
@@ -77,6 +81,44 @@ export function App() {
       hapticNotify("error");
     }
   }, []);
+
+  // Удаление напоминания с возможностью undo (4 сек): оптимистично убираем из
+  // списка, при «отменить» — пересоздаём с тем же bookmark/fire_at/payload.
+  const cancelReminder = useCallback((rem: RemRow) => {
+    runAction(async () => {
+      await api.reminders.cancel(rem.id);
+      setReminders((prev) => prev.filter((x) => x.id !== rem.id));
+      reload();
+      setRemUndo(rem);
+      if (remUndoTimer.current) clearTimeout(remUndoTimer.current);
+      remUndoTimer.current = setTimeout(() => {
+        remUndoTimer.current = null;
+        setRemUndo(null);
+      }, 4000);
+    });
+  }, [runAction, reload]);
+
+  const undoReminder = useCallback(() => {
+    setRemUndo((rem) => {
+      if (rem) {
+        if (remUndoTimer.current) {
+          clearTimeout(remUndoTimer.current);
+          remUndoTimer.current = null;
+        }
+        runAction(async () => {
+          await api.reminders.create(
+            rem.bookmark_id ?? null,
+            rem.fire_at,
+            rem.payload ?? undefined
+          );
+          const r = await api.reminders.upcoming(50);
+          setReminders(r.items);
+          reload();
+        });
+      }
+      return null;
+    });
+  }, [runAction, reload]);
 
   // Lazily load reminders / folders when a sheet needs them (race-guarded).
   useEffect(() => {
@@ -204,14 +246,10 @@ export function App() {
         <RemindersSheet
           groups={groupReminders(reminders)}
           onDismiss={closeSheet}
-          onCancel={(id) =>
-            runAction(async () => {
-              await api.reminders.cancel(id);
-              const r = await api.reminders.upcoming(50);
-              setReminders(r.items);
-              reload();
-            })
-          }
+          onCancel={(id) => {
+            const rem = reminders.find((x) => x.id === id);
+            if (rem) cancelReminder(rem);
+          }}
           onSnooze={(id) => {
             const r = reminders.find((x) => x.id === id);
             const ctx =
@@ -301,6 +339,51 @@ export function App() {
           }}
         >
           {toast}
+        </div>
+      )}
+
+      {remUndo && (
+        <div
+          role="status"
+          style={{
+            position: "fixed",
+            left: "50%",
+            top: "calc(16px + env(safe-area-inset-top, 0px))",
+            transform: "translateX(-50%)",
+            zIndex: 300,
+            display: "flex",
+            alignItems: "center",
+            gap: 14,
+            padding: "10px 14px 10px 18px",
+            borderRadius: 999,
+            background: "rgba(28,22,18,0.92)",
+            color: "#FBF7EC",
+            fontFamily: "var(--font-ui)",
+            fontSize: 13,
+            fontWeight: 500,
+            letterSpacing: "-0.005em",
+            boxShadow: "0 6px 20px rgba(60,40,25,0.28)",
+            animation: "toastIn 200ms var(--ease-out, ease) both",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span>напоминание удалено</span>
+          <button
+            type="button"
+            onClick={undoReminder}
+            style={{
+              background: "transparent",
+              border: "none",
+              color: "#9DBE9D",
+              fontFamily: "inherit",
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: "pointer",
+              padding: 0,
+            }}
+          >
+            отменить
+          </button>
         </div>
       )}
     </div>
