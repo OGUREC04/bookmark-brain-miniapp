@@ -71,6 +71,19 @@ screens/  → lib/  → api
 US-1 (тоггл) готов; дальше US-2 (edit), US-3 (delete+undo), US-4 (add), дедлайн на пункте.
 См. `src/components/ds/TaskListEditor.tsx`.
 
+## Жизненный цикл фичи + БТ
+
+Канон процесса — в монорепо: `../bookmark-brain/.claude/rules/development-workflow.md`
+(триаж → PRD → развилки → план → TDD → review → ADR → **БТ** → close). Те же правила здесь.
+
+**БТ (бизнес-требования) канонично лежат в `../bookmark-brain/docs/requirements/`** — одна
+страница на фичу, с секциями «Bot/Backend» И «Mini App». Меняешь поведение Mini App
+(новый экран, sheet, флоу) → **правь секцию «Mini App» в соответствующем БТ в тот же заход**
+(living-doc, как и типы из `src/lib/api.ts`). Шаблон — `docs/requirements/_ШАБЛОН.md`.
+
+Жанры не смешивать: PRD = зачем (`docs/prd/`), ADR = почему (`docs/decisions/`),
+**БТ = как сейчас** (`docs/requirements/`). Подробно — `docs/requirements/README.md`.
+
 ## Трекинг
 
 Задачи проекта ведутся в Beads в монорепо (`cd ../bookmark-brain && bd ...`, префикс
