@@ -24,6 +24,7 @@ type Sheet =
   | { type: "action"; target: SheetTarget; bookmark: Bookmark }
   | { type: "reminders" }
   | { type: "reminderPicker"; bookmark: Bookmark }
+  | { type: "reminderReschedule"; reminderId: string; contextText: string }
   | { type: "moveToSpace"; bookmark: Bookmark }
   | { type: "quickCreate" }
   | null;
@@ -49,7 +50,13 @@ export function App() {
   }, [toast]);
 
   const [reminders, setReminders] = useState<
-    { id: string; fire_at: string; bookmark_title: string | null; bookmark_raw_text: string | null }[]
+    {
+      id: string;
+      fire_at: string;
+      bookmark_title: string | null;
+      bookmark_raw_text: string | null;
+      payload?: Record<string, unknown> | null;
+    }[]
   >([]);
   const [folders, setFolders] = useState<Folder[]>([]);
 
@@ -205,12 +212,25 @@ export function App() {
               reload();
             })
           }
-          onSnooze={(id) =>
+          onSnooze={(id) => {
+            const r = reminders.find((x) => x.id === id);
+            const ctx =
+              (typeof r?.payload?.text === "string" && r.payload.text.trim()) ||
+              r?.bookmark_title ||
+              "напоминание";
+            setSheet({ type: "reminderReschedule", reminderId: id, contextText: ctx });
+          }}
+        />
+      )}
+
+      {sheet?.type === "reminderReschedule" && (
+        <ReminderPickerSheet
+          contextText={sheet.contextText}
+          onDismiss={() => setSheet({ type: "reminders" })}
+          onConfirm={(iso) =>
             runAction(async () => {
-              const next = new Date(Date.now() + 3600_000).toISOString();
-              await api.reminders.snooze(id, next);
-              const r = await api.reminders.upcoming(50);
-              setReminders(r.items);
+              await api.reminders.snooze(sheet.reminderId, iso);
+              setSheet({ type: "reminders" });
               reload();
             })
           }

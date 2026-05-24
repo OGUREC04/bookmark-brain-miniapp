@@ -148,6 +148,8 @@ export interface RemItem {
   fire_at: string;
   bookmark_title: string | null;
   bookmark_raw_text: string | null;
+  /** Для per-item напоминаний (task_list_per_item) текст задачи лежит в payload.text. */
+  payload?: Record<string, unknown> | null;
 }
 
 export interface ReminderGroupRow {
@@ -173,12 +175,22 @@ export function groupReminders(items: RemItem[]): { label: string; rows: Reminde
     const tgt = new Date(d.getFullYear(), d.getMonth(), d.getDate());
     const diff = Math.round((tgt.getTime() - today.getTime()) / 86_400_000);
     const label = diff <= 0 ? "сегодня" : diff === 1 ? "завтра" : diff < 7 ? "на неделе" : "позже";
+
+    // Имя: текст задачи (payload.text для per-item) → заголовок закладки →
+    // сниппет текста → дефолт. Превью: если имя из payload — показываем
+    // заголовок списка как контекст, иначе сниппет raw_text.
+    const payloadText = typeof r.payload?.text === "string" ? (r.payload.text as string).trim() : "";
+    const title = (r.bookmark_title || "").trim();
+    const rawSnippet = (r.bookmark_raw_text || "").trim().slice(0, 60);
+    const name = payloadText || title || rawSnippet || "напоминание";
+    const preview = payloadText ? title : rawSnippet;
+
     buckets[label].push({
       id: r.id,
-      avatar: { kind: "letter", letter: ((r.bookmark_title || "·").trim()[0] || "·").toUpperCase() },
-      name: r.bookmark_title || "напоминание",
+      avatar: { kind: "letter", letter: ((name || "·")[0] || "·").toUpperCase() },
+      name,
       time: `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`,
-      preview: r.bookmark_raw_text || "",
+      preview,
     });
   }
   return Object.entries(buckets)
