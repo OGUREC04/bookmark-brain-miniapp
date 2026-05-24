@@ -5,13 +5,16 @@
    structured_data сам запускает reminder-cascade (создаёт/переносит/отменяет
    напоминания по task.deadline) — фронт просто шлёт обновлённый массив.
    Строка/добавление — в TaskRow.tsx / AddRow.tsx. */
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, cloneElement, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { api, type Bookmark, type TaskItem } from "../../lib/api";
 import { hapticSelection, hapticNotify } from "../../lib/telegram";
 import { MAX_TASK_LEN } from "./taskEditorShared";
 import { TaskRow } from "./TaskRow";
 import { AddRow } from "./AddRow";
+import { BottomSheet, SheetTitle } from "./Sheets";
+import { DatePickerSheet } from "./DatePickerSheet";
+import { ExtraIcons } from "./icons";
 
 const COMMIT_DEBOUNCE_MS = 400;
 
@@ -51,6 +54,10 @@ export function TaskListEditor({
   // US-3: удалённый пункт для undo-snackbar (4 сек).
   const [deleted, setDeleted] = useState<{ task: TaskItem; index: number } | null>(null);
   const undoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Открытые оверлеи: kebab-меню и календарь дедлайна (по индексу пункта).
+  const [menuIndex, setMenuIndex] = useState<number | null>(null);
+  const [deadlineIndex, setDeadlineIndex] = useState<number | null>(null);
 
   const commit = useCallback(
     async (next: TaskItem[], silent = false) => {
@@ -170,6 +177,21 @@ export function TaskListEditor({
     [onToast]
   );
 
+  // US-5: установить/сменить/снять дедлайн пункта (YYYY-MM-DD | null).
+  // PATCH запускает reminder-cascade на бэке (создаст/перенесёт/отменит напоминание).
+  const setDeadline = useCallback(
+    (index: number, value: string | null) => {
+      const current = tasksRef.current[index];
+      if (!current || (current.deadline ?? null) === value) return; // нет изменений
+      const next = tasksRef.current.map((t, i) => (i === index ? { ...t, deadline: value } : t));
+      tasksRef.current = next;
+      setTasks(next);
+      scheduleCommit(next);
+      hapticSelection();
+    },
+    [scheduleCommit]
+  );
+
   // US-4: добавить новый пункт в конец списка.
   const addTask = useCallback(
     (raw: string) => {
@@ -194,7 +216,9 @@ export function TaskListEditor({
             index={i}
             onToggle={() => toggle(i)}
             onEdit={(text) => editText(i, text)}
-            onCopy={() => copyText(t.text)}
+            onMenu={() => setMenuIndex(i)}
+            onOpenDeadline={() => setDeadlineIndex(i)}
+            onClearDeadline={() => setDeadline(i, null)}
           />
         ))}
         <AddRow onAdd={addTask} />
@@ -246,6 +270,107 @@ export function TaskListEditor({
           </div>,
           document.body
         )}
+
+      {/* Kebab-меню пункта: копировать / напомнить / удалить. Portal — мимо
+          трансформированного предка (.screen-fade), иначе fixed ломается. */}
+      {menuIndex !== null &&
+        tasks[menuIndex] &&
+        createPortal(
+          <BottomSheet onDismiss={() => setMenuIndex(null)}>
+            <SheetTitle title="пункт" onClose={() => setMenuIndex(null)} />
+            <div style={{ padding: "0 12px 4px" }}>
+              <MenuItem
+                icon={ExtraIcons.copy}
+                label="копировать"
+                onClick={() => {
+                  copyText(tasks[menuIndex].text);
+                  setMenuIndex(null);
+                }}
+              />
+              <MenuItem
+                icon={ExtraIcons.calendar}
+                label={tasks[menuIndex].deadline ? "изменить дедлайн" : "напомнить"}
+                onClick={() => {
+                  setDeadlineIndex(menuIndex);
+                  setMenuIndex(null);
+                }}
+              />
+              <MenuItem
+                icon={ExtraIcons.trash}
+                label="удалить"
+                danger
+                onClick={() => {
+                  const i = menuIndex;
+                  setMenuIndex(null);
+                  editText(i, "");
+                }}
+              />
+            </div>
+          </BottomSheet>,
+          document.body
+        )}
+
+      {/* DS-календарь дедлайна. */}
+      {deadlineIndex !== null &&
+        tasks[deadlineIndex] &&
+        createPortal(
+          <DatePickerSheet
+            contextText={tasks[deadlineIndex].text || "пункт"}
+            value={tasks[deadlineIndex].deadline ?? null}
+            onDismiss={() => setDeadlineIndex(null)}
+            onConfirm={(iso) => {
+              setDeadline(deadlineIndex, iso);
+              setDeadlineIndex(null);
+            }}
+            onClear={() => {
+              setDeadline(deadlineIndex, null);
+              setDeadlineIndex(null);
+            }}
+          />,
+          document.body
+        )}
     </>
+  );
+}
+
+function MenuItem({
+  icon,
+  label,
+  danger,
+  onClick,
+}: {
+  icon: ReactElement;
+  label: string;
+  danger?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 12,
+        width: "100%",
+        padding: "12px 12px",
+        background: "transparent",
+        border: "none",
+        borderRadius: 12,
+        cursor: "pointer",
+        textAlign: "left",
+        color: danger ? "var(--danger, #C2554D)" : "var(--fg-1)",
+        fontFamily: "var(--font-ui)",
+        fontSize: 15,
+        fontWeight: 500,
+        letterSpacing: "-0.01em",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <span style={{ display: "flex", width: 22, height: 22, alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {cloneElement(icon, { size: 19, sw: 1.7 } as never)}
+      </span>
+      {label}
+    </button>
   );
 }

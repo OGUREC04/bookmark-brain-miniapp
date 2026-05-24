@@ -40,7 +40,7 @@ export function AddRow({ onAdd }: { onAdd: (text: string) => void }) {
       style={{
         width: 28,
         height: 28,
-        margin: "-4px 0 0 -5px",
+        margin: "0 0 0 -5px",
         flexShrink: 0,
         display: "flex",
         alignItems: "center",

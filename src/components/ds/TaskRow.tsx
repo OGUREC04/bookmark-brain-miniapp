@@ -5,18 +5,31 @@ import { Icons, ExtraIcons } from "./icons";
 import type { TaskItem } from "../../lib/api";
 import { EDIT_INPUT_STYLE, MAX_TASK_LEN } from "./taskEditorShared";
 
+/** "2026-05-16" → "16.05" (дедлайн — дата без времени, время 09:00 ставит бэк). */
+function fmtDeadline(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return d && m ? `${d}.${m}` : iso;
+}
+
 export function TaskRow({
   task,
   index,
   onToggle,
   onEdit,
-  onCopy,
+  onMenu,
+  onOpenDeadline,
+  onClearDeadline,
 }: {
   task: TaskItem;
   index: number;
   onToggle: () => void;
   onEdit: (text: string) => void;
-  onCopy: () => void;
+  /** Открыть kebab-меню (копировать / удалить / напомнить). */
+  onMenu: () => void;
+  /** Открыть DS-календарь для дедлайна пункта. */
+  onOpenDeadline: () => void;
+  /** Снять дедлайн (× на чипе). */
+  onClearDeadline: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
@@ -160,7 +173,70 @@ export function TaskRow({
         </span>
       )}
 
-      {/* Действия: copy + очистить(×). Видны на ховере/фокусе, прибиты к низу. */}
+      {/* Чип дедлайна — виден всегда когда дедлайн есть; тап → пере-выбор, × → снять. */}
+      {task.deadline && (
+        <span
+          style={{
+            alignSelf: "flex-end",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 2,
+            flexShrink: 0,
+            padding: "1px 3px 1px 7px",
+            borderRadius: 999,
+            background: "var(--bg-sunken)",
+            color: "var(--fg-2)",
+          }}
+        >
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onOpenDeadline}
+            aria-label={`дедлайн пункта ${index + 1}: ${task.deadline}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              color: "inherit",
+              fontFamily: "var(--font-mono)",
+              fontSize: 11,
+              fontWeight: 500,
+              letterSpacing: ".02em",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            {cloneElement(ExtraIcons.calendar, { size: 12, sw: 1.6 } as never)}
+            {fmtDeadline(task.deadline)}
+          </button>
+          <button
+            type="button"
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onClearDeadline}
+            aria-label={`снять дедлайн пункта ${index + 1}`}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 16,
+              height: 16,
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              cursor: "pointer",
+              color: "var(--fg-3)",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            {cloneElement(Icons.close, { size: 11, sw: 1.8 } as never)}
+          </button>
+        </span>
+      )}
+
+      {/* Действия: очистить(×) + меню(⋮). Видны на ховере/фокусе, прибиты к низу. */}
       <div
         style={{
           alignSelf: "flex-end",
@@ -173,17 +249,12 @@ export function TaskRow({
         }}
       >
         <IconBtn
-          icon={ExtraIcons.copy}
-          label={`скопировать пункт ${index + 1}`}
-          disabled={!hasText}
-          onClick={onCopy}
-        />
-        <IconBtn
           icon={Icons.close}
           label={`очистить пункт ${index + 1}`}
           disabled={!hasText}
           onClick={clearText}
         />
+        <IconBtn icon={ExtraIcons.kebab} label={`меню пункта ${index + 1}`} onClick={onMenu} />
       </div>
     </div>
   );
