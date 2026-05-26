@@ -84,6 +84,61 @@
   --glass-edge: rgba(255, 255, 255, 0.6);
   --glass-edge-dark: rgba(255, 255, 255, 0.18);
 
+  /* === Liquid-glass canonical tokens (DS v2 — BRIEF-glass-update) ===
+     Source of truth for all glass surfaces. Components reference these,
+     never hand-rolled rgba. Layered on top of warm paper --bg-page. */
+
+  /* alpha surfaces (cream tinted on paper) */
+  --surface-glass:        rgba(255, 252, 246, 0.55);  /* default: cards, tiles, chips, stat, settings */
+  --surface-glass-strong: rgba(255, 252, 246, 0.78);  /* nav, sheets, floating-over-content */
+  --surface-glass-subtle: rgba(255, 252, 246, 0.40);  /* whispery chips, ghost states */
+
+  /* tinted AI/semantic gradients */
+  --surface-glass-sage:  linear-gradient(160deg, rgba(226,237,226,0.70) 0%, rgba(207,223,207,0.55) 100%);
+  --surface-glass-honey: linear-gradient(160deg, rgba(243,232,206,0.70) 0%, rgba(228,210,166,0.55) 100%);
+  --surface-glass-slate: linear-gradient(160deg, rgba(220,229,236,0.70) 0%, rgba(190,205,219,0.55) 100%);
+
+  /* blur intensities — one per surface role */
+  --blur-card:  blur(20px) saturate(150%);
+  --blur-nav:   blur(28px) saturate(180%);
+  --blur-sheet: blur(24px) saturate(160%);
+  --blur-chip:  blur(14px) saturate(140%);
+  --blur-tint:  blur(18px) saturate(150%);
+
+  /* edges — 1px white meniscus */
+  --glass-edge-strong:   rgba(255, 255, 255, 0.70);  /* pairs with strong alpha */
+  --glass-edge-tinted-c: rgba(207, 223, 207, 0.70);  /* pairs with surface-glass-sage */
+  --glass-border:        1px solid var(--glass-edge);
+  --glass-border-strong: 1px solid var(--glass-edge-strong);
+  --glass-border-tinted: 1px solid var(--glass-edge-tinted-c);
+
+  /* inner highlights — double inset = "glass thickness" */
+  --glass-inner-light: inset 0 1px 0 rgba(255, 255, 255, 0.60);
+  --glass-inner-dark:  inset 0 -1px 0 rgba(0, 0, 0, 0.04);
+
+  /* warm-brown drop shadows under glass (never neutral grey) */
+  --shadow-glass-sm: 0 2px 6px rgba(60, 40, 25, 0.06);   /* chips, mini pills */
+  --shadow-glass-md: 0 6px 18px rgba(60, 40, 25, 0.05);  /* cards, tiles, stat */
+  --shadow-glass-lg: 0 16px 40px rgba(60, 40, 25, 0.12); /* nav, sheets, modals */
+  --shadow-fab:      0 4px 12px rgba(122, 156, 122, 0.35), 0 2px 4px rgba(60, 40, 25, 0.12); /* sage FAB */
+
+  /* composed shadow recipes — drop onto canonical surfaces */
+  --shadow-glass-card:  var(--glass-inner-light), var(--glass-inner-dark), var(--shadow-glass-md);
+  --shadow-glass-nav:   var(--glass-inner-light), var(--glass-inner-dark), var(--shadow-glass-lg);
+  --shadow-glass-sheet: var(--glass-inner-light), 0 -8px 32px rgba(60, 40, 25, 0.12);
+  --shadow-glass-chip:  inset 0 1px 0 rgba(255, 255, 255, 0.50), var(--shadow-glass-sm);
+  --shadow-glass-tint:  inset 0 1px 0 rgba(255, 255, 255, 0.50), 0 4px 14px rgba(60, 90, 60, 0.06);
+
+  /* radii by role (glass leans larger — iOS 17+) */
+  --radius-chip:  999px;
+  --radius-input: 14px;
+  --radius-stat:  16px;
+  --radius-card:  18px;
+  --radius-tile:  22px;
+  --radius-sheet: 28px;
+  --radius-nav:   28px;
+  --radius-glyph: 12px;
+
   /* --- Motion --- */
   --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
