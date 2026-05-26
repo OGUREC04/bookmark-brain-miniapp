@@ -7,6 +7,7 @@ import { SearchScreen } from "./screens/SearchScreen";
 import { SpacesScreen } from "./screens/SpacesScreen";
 import { MeScreen } from "./screens/MeScreen";
 import { DetailScreen } from "./screens/DetailScreen";
+import { SpaceDetailScreen } from "./screens/SpaceDetailScreen";
 import {
   ActionSheet,
   RemindersSheet,
@@ -42,6 +43,7 @@ export function App() {
   const [tab, setTab] = useState<NavTab>("mysli");
   const [searchOpen, setSearchOpen] = useState(false);
   const [detail, setDetail] = useState<Bookmark | null>(null);
+  const [space, setSpace] = useState<Folder | null>(null);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
@@ -143,12 +145,13 @@ export function App() {
   useEffect(() => {
     const back = getBackButton();
     if (!back) return;
-    const overlayOpen = searchOpen || detail !== null || sheet !== null;
+    const overlayOpen = searchOpen || detail !== null || space !== null || sheet !== null;
     if (overlayOpen) {
       back.show();
       const onBack = () => {
         if (sheet !== null) setSheet(null);
         else if (detail !== null) setDetail(null);
+        else if (space !== null) setSpace(null);
         else setSearchOpen(false);
       };
       back.onClick(onBack);
@@ -158,7 +161,7 @@ export function App() {
       };
     }
     back.hide();
-  }, [searchOpen, detail, sheet]);
+  }, [searchOpen, detail, space, sheet]);
 
   const openActions = useCallback((b: Bookmark) => {
     hapticImpact("medium");
@@ -179,7 +182,10 @@ export function App() {
       }}
       className="app-shell"
     >
-      <div key={detail ? `d-${detail.id}` : searchOpen ? "search" : tab} className="screen-fade">
+      <div
+        key={detail ? `d-${detail.id}` : space ? `sp-${space.id}` : searchOpen ? "search" : tab}
+        className="screen-fade"
+      >
         {detail ? (
           <DetailScreen
             bookmark={detail}
@@ -187,6 +193,13 @@ export function App() {
             onMore={() => openActions(detail)}
             onChanged={reload}
             onToast={setToast}
+          />
+        ) : space ? (
+          <SpaceDetailScreen
+            space={space}
+            onBack={() => setSpace(null)}
+            onOpenNote={openDetail}
+            onMore={openActions}
           />
         ) : searchOpen ? (
           <SearchScreen onBack={() => setSearchOpen(false)} onOpen={comingSoon} />
@@ -199,13 +212,19 @@ export function App() {
             onOpen={openDetail}
           />
         ) : tab === "spaces" ? (
-          <SpacesScreen onOpen={comingSoon} onCreate={comingSoon} />
+          <SpacesScreen
+            onOpen={(f) => {
+              hapticImpact("light");
+              setSpace(f);
+            }}
+            onCreate={comingSoon}
+          />
         ) : (
           <MeScreen onComingSoon={comingSoon} />
         )}
       </div>
 
-      {!searchOpen && !detail && (
+      {!searchOpen && !detail && !space && (
         <BottomNav
           current={tab}
           onChange={(t) => {
