@@ -117,6 +117,13 @@ export function DetailScreen({
           </div>
         )}
 
+        {/* плейсхолдер контекста для голой ссылки (контекст приходит из AI-пайплайна) */}
+        {titleIsUrl && !bookmark.summary && (
+          <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 13.5, color: "var(--fg-3)", lineHeight: 1.45, marginBottom: 22 }}>
+            {bookmark.ai_status !== "completed" ? "Brain читает ссылку…" : "контекст не извлёкся — открой источник"}
+          </div>
+        )}
+
         {/* task list — flat */}
         {isTaskList && (
           <>
