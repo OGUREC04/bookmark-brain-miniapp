@@ -183,6 +183,10 @@ function ViewSegment({ view, setView }: { view: "chat" | "cards"; setView: (v: "
 // Подсказки скрыты до реального источника (bd bookmark-brain-ntn). Вернуть = true.
 const SHOW_SUGGESTIONS = false;
 
+// Модульный кеш ленты — чтобы при возврате из заметки не было блика загрузки
+// (экран размонтируется/монтируется заново в state-driven навигации).
+let feedCache: { items: Bookmark[]; total: number; reminderCount: number } | null = null;
+
 const SUGGESTION_DEMO = [
   {
     text: (
@@ -231,10 +235,11 @@ export function MysliScreen({
   const [view, setView] = useState<"chat" | "cards">("chat");
   const [filter, setFilter] = useState<Filter>("all");
   const [hideSuggest, setHideSuggest] = useState(false);
-  const [items, setItems] = useState<Bookmark[]>([]);
-  const [total, setTotal] = useState(0);
-  const [reminderCount, setReminderCount] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<Bookmark[]>(() => feedCache?.items ?? []);
+  const [total, setTotal] = useState(() => feedCache?.total ?? 0);
+  const [reminderCount, setReminderCount] = useState(() => feedCache?.reminderCount ?? 0);
+  // спиннер только на самом первом заходе (кеша ещё нет); возврат/рефетч — без блика
+  const [loading, setLoading] = useState(!feedCache);
 
   useEffect(() => {
     let alive = true;
@@ -248,6 +253,7 @@ export function MysliScreen({
         setItems(list.items);
         setTotal(list.total);
         setReminderCount(rem.total);
+        feedCache = { items: list.items, total: list.total, reminderCount: rem.total };
       } finally {
         if (alive) setLoading(false);
       }

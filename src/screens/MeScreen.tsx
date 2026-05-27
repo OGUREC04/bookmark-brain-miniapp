@@ -162,12 +162,7 @@ export function MeScreen({ onComingSoon }: { onComingSoon: () => void }) {
   const since = me ? `с ${formatDate(me.created_at)}` : "";
 
   return (
-    <div style={{ padding: "6px 16px calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      <h1 style={{ fontSize: 32, fontWeight: 500, letterSpacing: "-0.035em", margin: "4px 0 16px", color: "var(--fg-1)", lineHeight: 1 }}>
-        я
-        <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, color: "var(--brand-primary)", marginLeft: 6, letterSpacing: "-0.01em" }}>·</span>
-      </h1>
-
+    <div style={{ padding: "12px 16px calc(116px + env(safe-area-inset-bottom, 0px))" }}>
       {/* profile card */}
       <div
         style={{

@@ -48,10 +48,15 @@ export function DetailScreen({
   /** Тост (например, ошибка сохранения списка). */
   onToast?: (msg: string) => void;
 }) {
-  const title = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
+  const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
   const host = bookmark.url ? hostOf(bookmark.url) : null;
+  const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
+  // Голая ссылка как заголовок выглядит уродливо (длинный URL) — показываем хост.
+  const titleIsUrl = isUrl(rawTitle);
+  const title = titleIsUrl ? host || "ссылка" : rawTitle;
   const isTaskList = bookmark.structured_data?.type === "task_list";
-  const meta = [host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
+  // если заголовок = хост, не дублируем хост в мете
+  const meta = [titleIsUrl ? null : host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
 
   return (
     <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
@@ -120,8 +125,8 @@ export function DetailScreen({
           </>
         )}
 
-        {/* raw text (non-tasklist notes) */}
-        {!isTaskList && bookmark.raw_text && bookmark.raw_text !== title && (
+        {/* raw text (non-tasklist notes) — но не голый URL (он уже в кнопке источника) */}
+        {!isTaskList && bookmark.raw_text && bookmark.raw_text !== rawTitle && !isUrl(bookmark.raw_text) && (
           <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap" }}>
             {bookmark.raw_text}
           </p>
@@ -150,31 +155,58 @@ export function DetailScreen({
           </div>
         )}
 
-        {/* open source — full-width bordered */}
+        {/* open source + copy link */}
         {bookmark.url && (
-          <button
-            onClick={() => openLink(bookmark.url!)}
-            style={{
-              width: "100%",
-              background: "transparent",
-              border: "1px solid var(--border-1)",
-              borderRadius: 12,
-              padding: "11px 16px",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 8,
-              color: "var(--fg-1)",
-              fontFamily: "var(--font-ui)",
-              fontSize: 14,
-              fontWeight: 500,
-              letterSpacing: "-0.005em",
-            }}
-          >
-            {cloneElement(Icons.link, { size: 14, sw: 1.7 } as never)}
-            Открыть источник
-          </button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              onClick={() => openLink(bookmark.url!)}
+              style={{
+                flex: 1,
+                background: "transparent",
+                border: "1px solid var(--border-1)",
+                borderRadius: 12,
+                padding: "11px 16px",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: 8,
+                color: "var(--fg-1)",
+                fontFamily: "var(--font-ui)",
+                fontSize: 14,
+                fontWeight: 500,
+                letterSpacing: "-0.005em",
+              }}
+            >
+              {cloneElement(Icons.link, { size: 14, sw: 1.7 } as never)}
+              Открыть источник
+            </button>
+            <button
+              aria-label="скопировать ссылку"
+              onClick={() => {
+                try {
+                  void navigator.clipboard?.writeText(bookmark.url!);
+                  onToast?.("ссылка скопирована");
+                } catch {
+                  /* clipboard недоступен */
+                }
+              }}
+              style={{
+                flexShrink: 0,
+                width: 44,
+                background: "transparent",
+                border: "1px solid var(--border-1)",
+                borderRadius: 12,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "var(--fg-2)",
+              }}
+            >
+              {cloneElement(ExtraIcons.copy, { size: 16, sw: 1.7 } as never)}
+            </button>
+          </div>
         )}
       </div>
     </div>

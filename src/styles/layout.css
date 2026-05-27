@@ -173,12 +173,15 @@
 }
 
 /* Screen cross-fade on tab/route switch */
+/* translateY only — БЕЗ opacity: при opacity-фейде весь экран становился
+   полупрозрачным и сквозь него вспыхивал фон-градиент (зелёный «край фрейма»
+   на каждом переходе). Сдвиг сохраняет лёгкое движение без вспышки. */
 @keyframes screenIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: translateY(0); }
+  from { transform: translateY(5px); }
+  to   { transform: translateY(0); }
 }
 .screen-fade {
-  animation: screenIn 260ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  animation: screenIn 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
 }
 /* Toast fade — opacity only (NO transform; toast uses translateX(-50%) to
    center, a transform-based keyframe would clobber it and shift it off-center). */

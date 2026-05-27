@@ -135,39 +135,7 @@ export function SpacesScreen({ onOpen, onCreate }: { onOpen: (f: Folder) => void
   }, []);
 
   return (
-    <div style={{ padding: "6px 16px calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      <div style={{ marginBottom: 4, marginTop: 4 }}>
-        <h1 style={{ fontSize: 32, fontWeight: 500, letterSpacing: "-0.035em", margin: 0, color: "var(--fg-1)", lineHeight: 1 }}>
-          пространства
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              fontWeight: 500,
-              color: "var(--brand-primary)",
-              marginLeft: 6,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            ·
-          </span>
-        </h1>
-      </div>
-      <div
-        style={{
-          fontFamily: "var(--font-display)",
-          fontStyle: "italic",
-          fontWeight: 400,
-          fontSize: 14,
-          color: "var(--fg-2)",
-          margin: "8px 0 18px",
-          letterSpacing: 0,
-          lineHeight: 1.4,
-        }}
-      >
-        {loading ? "загрузка…" : `${folders.length} пространств · AI собирает похожее само`}
-      </div>
-
+    <div style={{ padding: "12px 16px calc(116px + env(safe-area-inset-bottom, 0px))" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {folders.map((f) => (
           <SpaceTile key={f.id} folder={f} onClick={() => onOpen(f)} />
