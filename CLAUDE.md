@@ -72,10 +72,17 @@ screens/  → lib/  → api
 дедлайн-чип под текстом, `⋮`-меню, DS-календарь + TimeWheel). См. `components/ds/TaskListEditor.tsx`
 (+ `TaskRow`, `AddRow`, `Calendar`, `TimeWheel`, `DatePickerSheet`).
 
-**DS-полиш по макетам дизайнера** (`docs/DESIGN-BRIEF.md`) — в процессе: glass-токены в
-`tokens.css` (`--surface-glass*`, `--shadow-glass-*`, `--blur-*`, `--radius-*`), `SpaceDetailScreen`
-(открытие папки), `MeScreen` (тогглы локальные — бэкенда настроек нет), `DetailScreen` (плоская
-editorial-раскладка). Шторки оставлены текущими по решению пользователя.
+**DS-полиш по макетам дизайнера** (`docs/DESIGN-BRIEF.md` + дизайн-архив `bookmarkbrain-design-system`)
+— основное сделано (2026-05-27): glass-токены в `tokens.css`; `SpaceDetailScreen` (открытие папки,
+bd 8g1 open-часть); `MeScreen` (тогглы локальные — бэкенда настроек нет); `DetailScreen` (плоская
+раскладка, инлайн-теги, brain-блок, копировать-ссылку); ChatRow (Things3, typed-аватар, src-пилюля,
+без разделителей); лента Mysli (без h1, круглый bell + счётчики чипов + icon view-segment);
+Nav (без активной капсулы); редактор задач Things3-гибрид. Фон: главная/списки — однотон,
+градиент только на заметке. Шторки оставлены текущими по решению пользователя.
+
+**Остаётся (next):** создание пространства (bd 8g1, сейчас «в разработке»); SuggestionCard рестайл
++ реальный источник AI-подсказок (bd ntn); facet-чипы в поиске (bd 0u7, нужны счётчики с бэка);
+медиа-загрузка из QuickCreate (bd ti0); контекст ссылок — бэкенд (bd z9q, OG-фолбэк).
 
 ## Жизненный цикл фичи + БТ
 
