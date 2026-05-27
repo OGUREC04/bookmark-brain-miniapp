@@ -9,6 +9,7 @@ import { SuggestionPager } from "../components/ds/SuggestionPager";
 import { api, type Bookmark } from "../lib/api";
 import { bookmarkToChatRow, bookmarkToCard, matchesFilter } from "../lib/adapters";
 import { formatDaySeparator } from "../lib/formatters";
+import { getUserInfo } from "../lib/telegram";
 
 type Filter = "all" | "fav" | "task" | "voice";
 
@@ -185,7 +186,13 @@ const SHOW_SUGGESTIONS = false;
 
 // Модульный кеш ленты — чтобы при возврате из заметки не было блика загрузки
 // (экран размонтируется/монтируется заново в state-driven навигации).
-let feedCache: { items: Bookmark[]; total: number; reminderCount: number } | null = null;
+// Ключуется по telegram user id — иначе при смене аккаунта (multi-account / dev)
+// кеш юзера A мелькнёт юзеру B до первого рефетча.
+let feedCache: { userId: string; items: Bookmark[]; reminderCount: number } | null = null;
+
+function currentUserId(): string {
+  return getUserInfo()?.id?.toString() ?? "";
+}
 
 const SUGGESTION_DEMO = [
   {
@@ -235,11 +242,12 @@ export function MysliScreen({
   const [view, setView] = useState<"chat" | "cards">("chat");
   const [filter, setFilter] = useState<Filter>("all");
   const [hideSuggest, setHideSuggest] = useState(false);
-  const [items, setItems] = useState<Bookmark[]>(() => feedCache?.items ?? []);
-  const [total, setTotal] = useState(() => feedCache?.total ?? 0);
-  const [reminderCount, setReminderCount] = useState(() => feedCache?.reminderCount ?? 0);
+  // кеш валиден только для текущего юзера (иначе мелькнёт чужая лента при смене аккаунта)
+  const cache = feedCache?.userId === currentUserId() ? feedCache : null;
+  const [items, setItems] = useState<Bookmark[]>(() => cache?.items ?? []);
+  const [reminderCount, setReminderCount] = useState(() => cache?.reminderCount ?? 0);
   // спиннер только на самом первом заходе (кеша ещё нет); возврат/рефетч — без блика
-  const [loading, setLoading] = useState(!feedCache);
+  const [loading, setLoading] = useState(!cache);
 
   useEffect(() => {
     let alive = true;
@@ -251,9 +259,8 @@ export function MysliScreen({
         ]);
         if (!alive) return;
         setItems(list.items);
-        setTotal(list.total);
         setReminderCount(rem.total);
-        feedCache = { items: list.items, total: list.total, reminderCount: rem.total };
+        feedCache = { userId: currentUserId(), items: list.items, reminderCount: rem.total };
       } finally {
         if (alive) setLoading(false);
       }
@@ -266,7 +273,7 @@ export function MysliScreen({
 
   const filtered = items.filter((b) => matchesFilter(b, filter));
   const counts: Record<Filter, number> = {
-    all: total,
+    all: items.length,
     fav: items.filter((b) => matchesFilter(b, "fav")).length,
     task: items.filter((b) => matchesFilter(b, "task")).length,
     voice: items.filter((b) => matchesFilter(b, "voice")).length,
@@ -338,10 +345,9 @@ function ChatView({
 
   return (
     <div>
-      {rows.map((r, i) => {
+      {rows.map((r) => {
         if ("sep" in r) return <DaySeparator key={`sep-${r.sep}`} label={r.sep} />;
         const cr = bookmarkToChatRow(r.b);
-        const last = i === rows.length - 1;
         return (
           <div key={r.b.id} onClick={() => onOpen(r.b)}>
             <ChatRow
@@ -355,7 +361,6 @@ function ChatView({
               done={cr.done}
               muted={cr.muted}
               onMore={() => onMore(r.b)}
-              isLast={last}
             />
           </div>
         );

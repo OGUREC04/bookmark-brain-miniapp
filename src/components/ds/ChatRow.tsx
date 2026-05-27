@@ -127,7 +127,6 @@ export interface ChatRowProps {
   muted?: boolean;
   onClick?: () => void;
   onMore?: () => void;
-  isLast?: boolean;
 }
 
 export function ChatRow({

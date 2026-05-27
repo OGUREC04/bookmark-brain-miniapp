@@ -148,7 +148,7 @@ export function SpaceDetailScreen({
         <EmptyState glyph="∅" head="пусто" copy="перемести сюда закладки через ⋯ → переместить" />
       ) : (
         <div>
-          {rows.map((r, i) => {
+          {rows.map((r) => {
             if ("sep" in r) return <DaySeparator key={`sep-${r.sep}`} label={r.sep} />;
             const cr = bookmarkToChatRow(r.b);
             return (
@@ -164,7 +164,6 @@ export function SpaceDetailScreen({
                   done={cr.done}
                   muted={cr.muted}
                   onMore={() => onMore(r.b)}
-                  isLast={i === rows.length - 1}
                 />
               </div>
             );

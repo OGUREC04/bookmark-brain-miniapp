@@ -51,6 +51,19 @@ export function AddRow({ onAdd }: { onAdd: (text: string) => void }) {
   return (
     <div
       onClick={() => !active && setActive(true)}
+      role={active ? undefined : "button"}
+      tabIndex={active ? undefined : 0}
+      aria-label={active ? undefined : "добавить пункт"}
+      onKeyDown={
+        active
+          ? undefined
+          : (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                setActive(true);
+              }
+            }
+      }
       style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", cursor: "text" }}
     >
       {dashedBox}

@@ -173,13 +173,13 @@ export function TaskListEditor({
 
   const copyText = useCallback(
     (text: string) => {
-      try {
-        void navigator.clipboard?.writeText(text);
-        hapticNotify("success");
-        onToast?.("скопировано");
-      } catch {
-        /* clipboard недоступен — молча игнорируем */
-      }
+      navigator.clipboard
+        ?.writeText(text)
+        .then(() => {
+          hapticNotify("success");
+          onToast?.("скопировано");
+        })
+        .catch(() => onToast?.("не удалось скопировать"));
     },
     [onToast]
   );

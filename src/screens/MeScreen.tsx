@@ -103,8 +103,10 @@ function SettingsCard({ rows }: { rows: SettingRow[] }) {
         return (
           <button
             key={it.label}
+            type="button"
             onClick={it.onToggle ?? it.onClick}
-            aria-pressed={it.toggle != null ? it.toggle : undefined}
+            role={it.toggle != null ? "switch" : undefined}
+            aria-checked={it.toggle != null ? it.toggle : undefined}
             style={{
               width: "100%",
               display: "flex",

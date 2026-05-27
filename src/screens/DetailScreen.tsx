@@ -9,6 +9,8 @@ import { type Bookmark } from "../lib/api";
 import { hostOf } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
 
+const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
+
 function openLink(url: string) {
   // Guard against javascript:/data: schemes sneaking in via stored bookmark.url.
   if (!/^https?:\/\//i.test(url)) return;
@@ -48,7 +50,6 @@ export function DetailScreen({
   /** Тост (например, ошибка сохранения списка). */
   onToast?: (msg: string) => void;
 }) {
-  const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
   const host = bookmark.url ? hostOf(bookmark.url) : null;
   const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
   // Голая ссылка как заголовок выглядит уродливо (длинный URL) — показываем хост.
@@ -191,12 +192,10 @@ export function DetailScreen({
             <button
               aria-label="скопировать ссылку"
               onClick={() => {
-                try {
-                  void navigator.clipboard?.writeText(bookmark.url!);
-                  onToast?.("ссылка скопирована");
-                } catch {
-                  /* clipboard недоступен */
-                }
+                navigator.clipboard
+                  ?.writeText(bookmark.url!)
+                  .then(() => onToast?.("ссылка скопирована"))
+                  .catch(() => onToast?.("не удалось скопировать"));
               }}
               style={{
                 flexShrink: 0,
