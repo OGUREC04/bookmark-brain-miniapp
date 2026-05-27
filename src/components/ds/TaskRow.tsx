@@ -58,6 +58,11 @@ export function TaskRow({
     }
   }, [editing]);
 
+  // Синк draft с внешним текстом, пока не редактируем (напр. revert при провале PATCH).
+  useEffect(() => {
+    if (!editing) setDraft(task.text);
+  }, [task.text, editing]);
+
   const commitEdit = useCallback(() => {
     if (committedRef.current) return; // не дублировать (Enter затем blur)
     committedRef.current = true;

@@ -1,13 +1,13 @@
-/* Заметка — detail view. No DS-handoff artboard for this; built from DS
-   tokens/atoms to stay visually consistent. Opens on tap of a note. */
+/* Заметка — detail view. Дизайн: ui_kits/mini_app Screens.jsx → NoteDetailScreen.
+   Плоская editorial-раскладка (без карточки): мета-строка с инлайн-тегами,
+   Lora-italic заголовок, summary, редактор списка, AI-блок «brain»,
+   полноширинная кнопка источника. */
 import { cloneElement } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
-import { Glyph, TagChip } from "../components/ds/atoms";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { type Bookmark } from "../lib/api";
 import { hostOf } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
-import { tagStop } from "../lib/tagPalette";
 
 function openLink(url: string) {
   // Guard against javascript:/data: schemes sneaking in via stored bookmark.url.
@@ -16,6 +16,22 @@ function openLink(url: string) {
   if (tg?.openLink) tg.openLink(url);
   else window.open(url, "_blank", "noopener,noreferrer");
 }
+
+const navBtn = {
+  background: "var(--surface-glass-strong)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  border: "1px solid var(--border-1)",
+  width: 36,
+  height: 36,
+  borderRadius: "50%",
+  color: "var(--fg-1)",
+  cursor: "pointer",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  boxShadow: "var(--shadow-glass-chip)",
+} as const;
 
 export function DetailScreen({
   bookmark,
@@ -35,183 +51,131 @@ export function DetailScreen({
   const title = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
   const host = bookmark.url ? hostOf(bookmark.url) : null;
   const isTaskList = bookmark.structured_data?.type === "task_list";
+  const meta = [host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
 
   return (
-    <div style={{ padding: "6px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-        <button
-          onClick={onBack}
-          aria-label="назад"
-          style={{
-            background: "rgba(255,252,246,0.7)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            color: "var(--fg-1)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(60,40,25,0.05)",
-          }}
-        >
+    <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* nav */}
+      <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+        <button onClick={onBack} aria-label="назад" style={navBtn}>
           {cloneElement(Icons.back, { size: 16, sw: 1.6 } as never)}
         </button>
-        <h2 style={{ flex: 1, fontSize: 22, fontWeight: 500, letterSpacing: "-0.03em", margin: 0, color: "var(--fg-1)" }}>заметка</h2>
-        <button
-          onClick={onMore}
-          aria-label="действия"
-          style={{
-            background: "rgba(255,252,246,0.7)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            color: "var(--fg-1)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(60,40,25,0.05)",
-          }}
-        >
+        <div style={{ flex: 1 }} />
+        <button onClick={onMore} aria-label="действия" style={navBtn}>
           {cloneElement(ExtraIcons.more, { size: 18, sw: 1.6 } as never)}
         </button>
       </div>
 
-      <div style={{ padding: "0 16px" }}>
-        <div
-          style={{
-            background: "rgba(255,252,246,0.72)",
-            backdropFilter: "blur(20px) saturate(160%)",
-            WebkitBackdropFilter: "blur(20px) saturate(160%)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            borderRadius: 22,
-            padding: "20px 20px 22px",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 10px 30px rgba(60,40,25,0.06)",
-          }}
-        >
-          <div
+      <div style={{ padding: "0 22px" }}>
+        {/* meta line: src · time + inline #tags + ai-processing */}
+        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>{meta}</span>
+          {(bookmark.tags ?? []).map((t) => (
+            <span
+              key={t.id}
+              style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--brand-primary-press)", letterSpacing: "-0.005em" }}
+            >
+              #{t.name}
+            </span>
+          ))}
+          <span
+            onClick={() => onToast?.("теги · в разработке")}
             style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 10.5,
+              fontFamily: "var(--font-ui)",
+              fontSize: 13,
+              fontWeight: 400,
+              cursor: "pointer",
               color: "var(--fg-3)",
-              letterSpacing: ".06em",
-              marginBottom: 10,
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
+              borderBottom: "1px dashed var(--border-2)",
+              lineHeight: 1.1,
+              letterSpacing: "-0.005em",
             }}
           >
-            {host && (
-              <>
-                <span style={{ color: "var(--fg-2)", fontWeight: 500 }}>{host}</span>
-                <span style={{ width: 2.5, height: 2.5, borderRadius: "50%", background: "var(--fg-4)" }} />
-              </>
-            )}
-            <span>{formatRelativeDate(bookmark.created_at)}</span>
-            {bookmark.ai_status !== "completed" && (
-              <>
-                <span style={{ width: 2.5, height: 2.5, borderRadius: "50%", background: "var(--fg-4)" }} />
-                <span style={{ color: "#7A5828" }}>ai обрабатывает…</span>
-              </>
-            )}
-          </div>
-
-          <h1 style={{ fontSize: 21, fontWeight: 500, color: "var(--fg-1)", lineHeight: 1.28, margin: "0 0 12px", letterSpacing: "-0.02em" }}>
-            {title}
-          </h1>
-
-          {bookmark.summary && (
-            <p
-              style={{
-                fontFamily: "var(--font-display)",
-                fontStyle: "italic",
-                fontWeight: 400,
-                fontSize: 15,
-                color: "var(--fg-2)",
-                lineHeight: 1.5,
-                margin: "0 0 14px",
-                letterSpacing: 0,
-              }}
-            >
-              {bookmark.summary}
-            </p>
-          )}
-
-          {isTaskList && (
-            <TaskListEditor bookmark={bookmark} onCommitted={onChanged} onError={onToast} onToast={onToast} />
-          )}
-
-          {bookmark.raw_text && bookmark.raw_text !== title && (
-            <p style={{ fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 14px", whiteSpace: "pre-wrap" }}>
-              {bookmark.raw_text}
-            </p>
-          )}
-
-          {bookmark.url && (
-            <button
-              onClick={() => openLink(bookmark.url!)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "9px 14px",
-                borderRadius: 999,
-                background: "var(--brand-primary-tint)",
-                border: "1px solid rgba(122,156,122,0.3)",
-                color: "var(--brand-primary-press)",
-                fontFamily: "var(--font-ui)",
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: "pointer",
-                marginBottom: bookmark.tags.length ? 14 : 0,
-              }}
-            >
-              {cloneElement(Icons.link, { size: 14, sw: 1.8 } as never)}
-              открыть источник
-            </button>
-          )}
-
-          {bookmark.tags.length > 0 && (
-            <div style={{ display: "flex", alignItems: "center", gap: 5, flexWrap: "wrap", marginTop: 4 }}>
-              {bookmark.tags.map((t) => (
-                <TagChip key={t.id} name={t.name} color={tagStop(t.name)} size="sm" />
-              ))}
-            </div>
-          )}
-
-          {bookmark.key_ideas && bookmark.key_ideas.length > 0 && (
-            <div style={{ marginTop: 16 }}>
-              <div
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  letterSpacing: ".12em",
-                  textTransform: "uppercase",
-                  color: "var(--ai-suggest-fg)",
-                  fontWeight: 500,
-                  marginBottom: 8,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                <Glyph ch="✦" size={12} /> ключевые мысли
-              </div>
-              <ul style={{ margin: 0, paddingLeft: 18, color: "var(--fg-2)", fontSize: 14, lineHeight: 1.6 }}>
-                {bookmark.key_ideas.map((k, i) => (
-                  <li key={i}>{k}</li>
-                ))}
-              </ul>
-            </div>
+            +тег
+          </span>
+          {bookmark.ai_status !== "completed" && (
+            <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 12, color: "var(--brand-primary-press)", letterSpacing: 0 }}>
+              Brain думает…
+            </span>
           )}
         </div>
+
+        {/* title — editorial display italic */}
+        <h1 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, fontSize: 28, letterSpacing: "-0.01em", color: "var(--fg-1)", lineHeight: 1.15, margin: "0 0 14px" }}>
+          {title}
+        </h1>
+
+        {/* summary — UI sans */}
+        {bookmark.summary && (
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 14, color: "var(--fg-2)", letterSpacing: "-0.005em", lineHeight: 1.5, marginBottom: 22 }}>
+            {bookmark.summary}
+          </div>
+        )}
+
+        {/* task list — flat */}
+        {isTaskList && (
+          <>
+            <TaskListEditor bookmark={bookmark} onCommitted={onChanged} onError={onToast} onToast={onToast} />
+            <div style={{ height: 16 }} />
+          </>
+        )}
+
+        {/* raw text (non-tasklist notes) */}
+        {!isTaskList && bookmark.raw_text && bookmark.raw_text !== title && (
+          <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap" }}>
+            {bookmark.raw_text}
+          </p>
+        )}
+
+        {/* AI «brain» block — key ideas joined by · */}
+        {bookmark.key_ideas && bookmark.key_ideas.length > 0 && (
+          <div
+            style={{
+              background: "rgba(218,234,218,0.45)",
+              border: "0.5px solid rgba(122,156,122,0.22)",
+              borderRadius: 14,
+              padding: "12px 14px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 8,
+              marginBottom: 22,
+            }}
+          >
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--brand-primary-press)", letterSpacing: ".04em", fontWeight: 500 }}>
+              brain
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-1)", lineHeight: 1.5, letterSpacing: 0 }}>
+              {bookmark.key_ideas.join(" · ")}
+            </div>
+          </div>
+        )}
+
+        {/* open source — full-width bordered */}
+        {bookmark.url && (
+          <button
+            onClick={() => openLink(bookmark.url!)}
+            style={{
+              width: "100%",
+              background: "transparent",
+              border: "1px solid var(--border-1)",
+              borderRadius: 12,
+              padding: "11px 16px",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 8,
+              color: "var(--fg-1)",
+              fontFamily: "var(--font-ui)",
+              fontSize: 14,
+              fontWeight: 500,
+              letterSpacing: "-0.005em",
+            }}
+          >
+            {cloneElement(Icons.link, { size: 14, sw: 1.7 } as never)}
+            Открыть источник
+          </button>
+        )}
       </div>
     </div>
   );

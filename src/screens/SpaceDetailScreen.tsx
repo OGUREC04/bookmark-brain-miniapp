@@ -39,14 +39,23 @@ export function SpaceDetailScreen({
 }) {
   const [items, setItems] = useState<Bookmark[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let alive = true;
     setLoading(true);
+    setError(false);
     api
       .getFolderBookmarks(space.id, 1, 50)
-      .then((r) => alive && setItems(r.items))
-      .catch(() => alive && setItems([]))
+      .then((r) => {
+        if (alive) setItems(r.items);
+      })
+      .catch(() => {
+        if (alive) {
+          setItems([]);
+          setError(true);
+        }
+      })
       .finally(() => alive && setLoading(false));
     return () => {
       alive = false;
@@ -133,6 +142,8 @@ export function SpaceDetailScreen({
         <div style={{ padding: "40px 0", display: "flex", justifyContent: "center" }}>
           <Pulse />
         </div>
+      ) : error ? (
+        <EmptyState glyph="⚠" head="не загрузилось" copy="проверь связь и зайди снова" />
       ) : items.length === 0 ? (
         <EmptyState glyph="∅" head="пусто" copy="перемести сюда закладки через ⋯ → переместить" />
       ) : (

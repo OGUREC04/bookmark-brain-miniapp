@@ -129,6 +129,9 @@ export interface Bookmark {
 }
 
 export interface TaskItem {
+  /** Клиентский стабильный ключ для React (бэк хранит structured_data verbatim,
+   *  лишнее поле игнорирует). Бэкфилл при загрузке — см. TaskListEditor. */
+  id?: string;
   text: string;
   done: boolean;
   deadline: string | null;

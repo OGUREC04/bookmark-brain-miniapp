@@ -67,9 +67,15 @@ screens/  → lib/  → api
 
 ## Активная работа
 
-Редактирование task-list в Mini App (PRD был в монорепо `docs/prd/TASK-LIST-EDITING.md`):
-US-1 (тоггл) готов; дальше US-2 (edit), US-3 (delete+undo), US-4 (add), дедлайн на пункте.
-См. `src/components/ds/TaskListEditor.tsx`.
+**Редактирование task-list** (PRD `../bookmark-brain/docs/prd/TASK-LIST-EDITING.md`) — закрыто:
+тоггл/edit/delete+undo/add/дедлайн. Редактор — Things3-стиль (чекбокс 20px, underline-edit,
+дедлайн-чип под текстом, `⋮`-меню, DS-календарь + TimeWheel). См. `components/ds/TaskListEditor.tsx`
+(+ `TaskRow`, `AddRow`, `Calendar`, `TimeWheel`, `DatePickerSheet`).
+
+**DS-полиш по макетам дизайнера** (`docs/DESIGN-BRIEF.md`) — в процессе: glass-токены в
+`tokens.css` (`--surface-glass*`, `--shadow-glass-*`, `--blur-*`, `--radius-*`), `SpaceDetailScreen`
+(открытие папки), `MeScreen` (тогглы локальные — бэкенда настроек нет), `DetailScreen` (плоская
+editorial-раскладка). Шторки оставлены текущими по решению пользователя.
 
 ## Жизненный цикл фичи + БТ
 

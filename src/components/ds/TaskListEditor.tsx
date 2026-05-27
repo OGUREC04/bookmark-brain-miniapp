@@ -18,8 +18,15 @@ import { ExtraIcons } from "./icons";
 
 const COMMIT_DEBOUNCE_MS = 400;
 
+function newId(): string {
+  return crypto.randomUUID?.() ?? `t${Date.now()}${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function extractTasks(b: Bookmark): TaskItem[] {
-  return b.structured_data?.type === "task_list" ? b.structured_data.tasks : [];
+  const tasks = b.structured_data?.type === "task_list" ? b.structured_data.tasks : [];
+  // Бэкфилл стабильного id (бэк хранит без id) — нужен для React-ключей при
+  // delete+undo/edit, иначе индекс-ключи путают локальное editing-состояние строк.
+  return tasks.map((t) => (t.id ? t : { ...t, id: newId() }));
 }
 
 export function TaskListEditor({
@@ -197,7 +204,7 @@ export function TaskListEditor({
     (raw: string) => {
       const text = raw.trim().slice(0, MAX_TASK_LEN);
       if (!text) return;
-      const next = [...tasksRef.current, { text, done: false, deadline: null }];
+      const next = [...tasksRef.current, { id: newId(), text, done: false, deadline: null }];
       tasksRef.current = next;
       setTasks(next);
       scheduleCommit(next);
@@ -211,7 +218,7 @@ export function TaskListEditor({
       <div style={{ display: "flex", flexDirection: "column", gap: 4, margin: "0 0 14px" }}>
         {tasks.map((t, i) => (
           <TaskRow
-            key={i}
+            key={t.id ?? i}
             task={t}
             index={i}
             onToggle={() => toggle(i)}
