@@ -31,19 +31,18 @@ function SpaceTile({ folder, onClick }: { folder: Folder; onClick?: () => void }
       style={{
         position: "relative",
         overflow: "hidden",
-        background: "rgba(255,252,246,0.55)",
-        backdropFilter: "blur(20px) saturate(150%)",
-        WebkitBackdropFilter: "blur(20px) saturate(150%)",
-        border: "1px solid rgba(255,255,255,0.6)",
-        borderRadius: 22,
-        padding: "14px 14px 14px",
-        minHeight: 130,
+        background: "var(--surface-glass)",
+        backdropFilter: "var(--blur-card)",
+        WebkitBackdropFilter: "var(--blur-card)",
+        border: "var(--glass-border)",
+        borderRadius: "var(--radius-tile)",
+        padding: "14px",
+        minHeight: 156,
         cursor: "pointer",
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        boxShadow:
-          "0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 6px 18px rgba(60,40,25,0.05)",
+        boxShadow: "var(--shadow-glass-card)",
       }}
     >
       <div

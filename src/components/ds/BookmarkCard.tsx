@@ -33,16 +33,15 @@ export function BookmarkCard({
       onClick={onOpen}
       className="ds-bookmark-card"
       style={{
-        background: "rgba(255,252,246,0.72)",
-        backdropFilter: "blur(20px) saturate(160%)",
-        WebkitBackdropFilter: "blur(20px) saturate(160%)",
-        border: "1px solid rgba(255,255,255,0.6)",
-        borderRadius: 18,
+        background: "var(--surface-glass)",
+        backdropFilter: "var(--blur-card)",
+        WebkitBackdropFilter: "var(--blur-card)",
+        border: "var(--glass-border)",
+        borderRadius: "var(--radius-card)",
         padding: "16px 18px",
         cursor: "pointer",
         marginBottom: 10,
-        boxShadow:
-          "0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 6px 18px rgba(60,40,25,0.05)",
+        boxShadow: "var(--shadow-glass-card)",
         transition: "transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out)",
       }}
     >

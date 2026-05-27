@@ -121,13 +121,12 @@ export function GlassTile({
   return (
     <div
       style={{
-        background: strong ? "rgba(255,252,246,0.72)" : "rgba(255,252,246,0.55)",
-        backdropFilter: `blur(${strong ? 32 : 20}px) saturate(${strong ? 160 : 140}%)`,
-        WebkitBackdropFilter: `blur(${strong ? 32 : 20}px) saturate(${strong ? 160 : 140}%)`,
-        border: "1px solid rgba(255,255,255,0.6)",
-        borderRadius: strong ? 28 : 22,
-        boxShadow:
-          "0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 10px 30px rgba(60,40,25,0.08)",
+        background: strong ? "var(--surface-glass-strong)" : "var(--surface-glass)",
+        backdropFilter: strong ? "var(--blur-nav)" : "var(--blur-card)",
+        WebkitBackdropFilter: strong ? "var(--blur-nav)" : "var(--blur-card)",
+        border: strong ? "var(--glass-border-strong)" : "var(--glass-border)",
+        borderRadius: strong ? "var(--radius-sheet)" : "var(--radius-tile)",
+        boxShadow: strong ? "var(--shadow-glass-nav)" : "var(--shadow-glass-card)",
         ...style,
       }}
     >
@@ -158,15 +157,15 @@ export function SearchBar({
         alignItems: "center",
         gap: 12,
         padding: "13px 18px",
-        background: "rgba(255,252,246,0.72)",
-        backdropFilter: "blur(20px) saturate(160%)",
-        WebkitBackdropFilter: "blur(20px) saturate(160%)",
-        border: `1px solid ${focused ? "var(--brand-primary)" : "rgba(255,255,255,0.6)"}`,
-        borderRadius: 999,
+        background: "var(--surface-glass-strong)",
+        backdropFilter: "var(--blur-card)",
+        WebkitBackdropFilter: "var(--blur-card)",
+        border: `1px solid ${focused ? "var(--brand-primary)" : "var(--glass-edge)"}`,
+        borderRadius: "var(--radius-chip)",
         cursor: "text",
         boxShadow: focused
           ? "0 1px 0 rgba(255,255,255,0.6) inset, 0 0 0 4px rgba(122,156,122,0.18), 0 8px 20px rgba(60,90,60,0.1)"
-          : "0 1px 0 rgba(255,255,255,0.6) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 4px 12px rgba(60,40,25,0.06)",
+          : "var(--shadow-glass-chip)",
         transition: "box-shadow 200ms",
       }}
     >

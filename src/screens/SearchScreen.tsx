@@ -129,45 +129,20 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
   }, [q]);
 
   return (
-    <div style={{ padding: "6px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-        <button
-          onClick={onBack}
-          aria-label="назад"
-          style={{
-            background: "rgba(255,252,246,0.7)",
-            backdropFilter: "blur(12px)",
-            WebkitBackdropFilter: "blur(12px)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            width: 36,
-            height: 36,
-            borderRadius: "50%",
-            color: "var(--fg-1)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(60,40,25,0.05)",
-          }}
-        >
-          {cloneElement(Icons.back, { size: 16, sw: 1.6 } as never)}
-        </button>
-        <h2 style={{ fontSize: 22, fontWeight: 500, letterSpacing: "-0.03em", margin: 0, color: "var(--fg-1)" }}>поиск</h2>
-      </div>
-
-      {/* focused search field — matches DS SearchBar shape */}
-      <div style={{ padding: "0 16px", marginBottom: 14 }}>
+    <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* focused search field — X очищает / закрывает (back через системную кнопку тоже) */}
+      <div style={{ padding: "0 16px", marginTop: 2, marginBottom: 14 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: 12,
             padding: "13px 18px",
-            background: "rgba(255,252,246,0.72)",
-            backdropFilter: "blur(20px) saturate(160%)",
-            WebkitBackdropFilter: "blur(20px) saturate(160%)",
+            background: "var(--surface-glass-strong)",
+            backdropFilter: "var(--blur-card)",
+            WebkitBackdropFilter: "var(--blur-card)",
             border: "1px solid var(--brand-primary)",
-            borderRadius: 999,
+            borderRadius: "var(--radius-chip)",
             boxShadow:
               "0 1px 0 rgba(255,255,255,0.6) inset, 0 0 0 4px rgba(122,156,122,0.18), 0 8px 20px rgba(60,90,60,0.1)",
           }}
@@ -194,6 +169,25 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
               letterSpacing: "-0.01em",
             }}
           />
+          <button
+            onClick={() => (q ? setQ("") : onBack())}
+            aria-label={q ? "очистить" : "закрыть"}
+            style={{
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 24,
+              height: 24,
+              borderRadius: "50%",
+              background: "transparent",
+              border: "none",
+              color: "var(--fg-3)",
+              cursor: "pointer",
+            }}
+          >
+            {cloneElement(Icons.close, { size: 15, sw: 1.8 } as never)}
+          </button>
         </div>
       </div>
 
