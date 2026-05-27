@@ -1,14 +1,25 @@
-/* Строка пункта task-list: чекбокс (тоггл) + текст (тап → инлайн-редактирование)
-   + действия copy/очистить(×) на ховере/фокусе. См. TaskListEditor. */
-import { useCallback, useEffect, useRef, useState, cloneElement, type ReactElement } from "react";
+/* Строка пункта task-list — Things3/Craft-стиль (дизайн CleanTaskRow):
+   плоская строка, чекбокс 20px, тап по тексту → underline-edit, дедлайн-чип
+   под текстом (overdue → красный), ⋮-меню на ховере/фокусе.
+   Удаление/копирование/напомнить — через ⋮ (TaskListEditor); снятие дедлайна —
+   кнопка «снять» в DS-календаре. См. TaskListEditor. */
+import { useCallback, useEffect, useRef, useState, cloneElement } from "react";
 import { Icons, ExtraIcons } from "./icons";
 import type { TaskItem } from "../../lib/api";
-import { EDIT_INPUT_STYLE, MAX_TASK_LEN } from "./taskEditorShared";
+import { MAX_TASK_LEN } from "./taskEditorShared";
 
-/** "2026-05-16" → "16.05" (дедлайн — дата без времени, время 09:00 ставит бэк). */
+/** "2026-05-16" → "16.05". */
 function fmtDeadline(iso: string): string {
   const [, m, d] = iso.split("-");
   return d && m ? `${d}.${m}` : iso;
+}
+
+/** Дедлайн в прошлом и пункт не выполнен. */
+function isOverdue(deadline: string, done: boolean): boolean {
+  if (done) return false;
+  const today = new Date();
+  const todayISO = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  return deadline < todayISO;
 }
 
 export function TaskRow({
@@ -18,18 +29,15 @@ export function TaskRow({
   onEdit,
   onMenu,
   onOpenDeadline,
-  onClearDeadline,
 }: {
   task: TaskItem;
   index: number;
   onToggle: () => void;
   onEdit: (text: string) => void;
-  /** Открыть kebab-меню (копировать / удалить / напомнить). */
+  /** Открыть kebab-меню (копировать / напомнить / удалить). */
   onMenu: () => void;
-  /** Открыть DS-календарь для дедлайна пункта. */
+  /** Открыть DS-календарь дедлайна (снятие — через «снять» внутри). */
   onOpenDeadline: () => void;
-  /** Снять дедлайн (× на чипе). */
-  onClearDeadline: () => void;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
@@ -63,30 +71,16 @@ export function TaskRow({
     setDraft(task.text);
   }, [task.text]);
 
-  // × — очистить текст и оставить фокус в поле (Enter/blur пустого → удаление пункта).
-  const clearText = useCallback(() => {
-    committedRef.current = false;
-    setDraft("");
-    setEditing(true);
-    requestAnimationFrame(() => inputRef.current?.focus());
-  }, []);
-
-  const currentText = editing ? draft : task.text;
-  const hasText = currentText.trim().length > 0;
   const showActions = hovered || editing;
+  const overdue = task.deadline ? isOverdue(task.deadline, task.done) : false;
 
   return (
     <div
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      style={{
-        display: "flex",
-        alignItems: "flex-start",
-        gap: 10,
-        padding: "5px 4px",
-        borderRadius: 8,
-      }}
+      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0" }}
     >
+      {/* checkbox 20px */}
       <button
         type="button"
         onClick={onToggle}
@@ -94,208 +88,145 @@ export function TaskRow({
         aria-checked={task.done}
         aria-label={`отметить пункт ${index + 1}`}
         style={{
-          // зона тапа ~28×28 вокруг визуального чекбокса 18px (PRD §4)
-          width: 28,
-          height: 28,
-          margin: "-4px 0 0 -5px",
+          width: 20,
+          height: 20,
+          borderRadius: 5,
+          border: task.done ? "none" : "1.5px solid var(--border-2)",
+          background: task.done ? "var(--brand-primary)" : "transparent",
+          color: "var(--fg-on-brand)",
+          cursor: "pointer",
           flexShrink: 0,
+          marginTop: 2,
+          padding: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          background: "transparent",
-          border: "none",
-          padding: 0,
-          cursor: "pointer",
+          transition: "background 200ms var(--ease-out)",
           WebkitTapHighlightColor: "transparent",
         }}
       >
-        <span
-          style={{
-            width: 18,
-            height: 18,
-            borderRadius: 6,
-            border: task.done ? "none" : "1.5px solid var(--border-strong)",
-            background: task.done ? "var(--brand-primary)" : "transparent",
-            color: "var(--fg-on-brand)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            transition: "background 140ms var(--ease-out), border-color 140ms var(--ease-out)",
-          }}
-        >
-          {task.done && cloneElement(Icons.check, { size: 11, sw: 2.5 } as never)}
-        </span>
+        {task.done && cloneElement(Icons.check, { size: 11, sw: 2.5 } as never)}
       </button>
 
-      {editing ? (
-        <input
-          ref={inputRef}
-          className="task-edit-input"
-          value={draft}
-          maxLength={MAX_TASK_LEN}
-          aria-label={`редактировать пункт ${index + 1}`}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commitEdit}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              commitEdit();
-            } else if (e.key === "Escape") {
-              e.preventDefault();
-              cancelEdit();
-            }
-          }}
-          style={EDIT_INPUT_STYLE}
-        />
-      ) : (
-        <span
-          onClick={startEdit}
-          role="button"
-          tabIndex={0}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              startEdit();
-            }
-          }}
-          style={{
-            flex: 1,
-            minWidth: 0,
-            fontSize: 14.5,
-            color: task.done ? "var(--fg-3)" : "var(--fg-1)",
-            textDecoration: task.done ? "line-through" : "none",
-            lineHeight: 1.4,
-            cursor: "text",
-            WebkitTapHighlightColor: "transparent",
-          }}
-        >
-          {task.text}
-        </span>
-      )}
+      {/* text + deadline chip */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {editing ? (
+          <input
+            ref={inputRef}
+            className="task-edit-input"
+            value={draft}
+            maxLength={MAX_TASK_LEN}
+            aria-label={`редактировать пункт ${index + 1}`}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commitEdit}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitEdit();
+              } else if (e.key === "Escape") {
+                e.preventDefault();
+                cancelEdit();
+              }
+            }}
+            style={{
+              width: "100%",
+              border: "none",
+              borderBottom: "1px solid var(--brand-primary)",
+              outline: "none",
+              background: "transparent",
+              padding: "0 0 2px",
+              borderRadius: 0,
+              font: "inherit",
+              fontSize: 15,
+              color: "var(--fg-1)",
+              letterSpacing: "-0.005em",
+            }}
+          />
+        ) : (
+          <span
+            onClick={startEdit}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                startEdit();
+              }
+            }}
+            style={{
+              display: "block",
+              fontSize: 15,
+              color: task.done ? "var(--fg-3)" : "var(--fg-1)",
+              textDecoration: task.done ? "line-through" : "none",
+              textDecorationColor: "var(--fg-3)",
+              lineHeight: 1.4,
+              letterSpacing: "-0.005em",
+              cursor: "text",
+              wordBreak: "break-word",
+              WebkitTapHighlightColor: "transparent",
+            }}
+          >
+            {task.text}
+          </span>
+        )}
 
-      {/* Чип дедлайна — виден всегда когда дедлайн есть; тап → пере-выбор, × → снять. */}
-      {task.deadline && (
-        <span
-          style={{
-            alignSelf: "flex-end",
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 2,
-            flexShrink: 0,
-            padding: "1px 3px 1px 7px",
-            borderRadius: 999,
-            background: "var(--bg-sunken)",
-            color: "var(--fg-2)",
-          }}
-        >
+        {task.deadline && !editing && (
           <button
             type="button"
-            onMouseDown={(e) => e.preventDefault()}
             onClick={onOpenDeadline}
             aria-label={`дедлайн пункта ${index + 1}: ${task.deadline}`}
             style={{
+              marginTop: 4,
               display: "inline-flex",
               alignItems: "center",
               gap: 4,
-              background: "transparent",
-              border: "none",
-              padding: 0,
+              padding: "2px 8px 2px 6px",
+              borderRadius: 999,
+              background: overdue ? "rgba(196,80,60,0.10)" : "var(--brand-primary-tint)",
+              border: `1px solid ${overdue ? "rgba(196,80,60,0.25)" : "rgba(122,156,122,0.25)"}`,
+              color: overdue ? "#C2554D" : "var(--brand-primary-press)",
               cursor: "pointer",
-              color: "inherit",
               fontFamily: "var(--font-mono)",
-              fontSize: 11,
+              fontSize: 10.5,
               fontWeight: 500,
               letterSpacing: ".02em",
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            {cloneElement(ExtraIcons.calendar, { size: 12, sw: 1.6 } as never)}
-            {fmtDeadline(task.deadline)}
+            {cloneElement(ExtraIcons.calendar, { size: 11, sw: 1.7 } as never)}
+            <span>{fmtDeadline(task.deadline)}</span>
           </button>
-          <button
-            type="button"
-            onMouseDown={(e) => e.preventDefault()}
-            onClick={onClearDeadline}
-            aria-label={`снять дедлайн пункта ${index + 1}`}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 16,
-              height: 16,
-              background: "transparent",
-              border: "none",
-              padding: 0,
-              cursor: "pointer",
-              color: "var(--fg-3)",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            {cloneElement(Icons.close, { size: 11, sw: 1.8 } as never)}
-          </button>
-        </span>
-      )}
+        )}
+      </div>
 
-      {/* Действия: очистить(×) + меню(⋮). Видны на ховере/фокусе, прибиты к низу. */}
-      <div
+      {/* kebab ⋮ — на ховере/фокусе */}
+      <button
+        type="button"
+        aria-label={`меню пункта ${index + 1}`}
+        onMouseDown={(e) => e.preventDefault()}
+        onClick={onMenu}
         style={{
-          alignSelf: "flex-end",
+          width: 22,
+          height: 22,
+          borderRadius: 6,
+          border: "none",
+          background: "transparent",
+          color: "var(--fg-4)",
+          cursor: "pointer",
           display: "flex",
-          gap: 2,
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          marginTop: 1,
           flexShrink: 0,
           opacity: showActions ? 1 : 0,
           pointerEvents: showActions ? "auto" : "none",
-          transition: "opacity 140ms var(--ease-out)",
+          transition: "opacity 160ms var(--ease-out)",
+          WebkitTapHighlightColor: "transparent",
         }}
       >
-        <IconBtn
-          icon={Icons.close}
-          label={`очистить пункт ${index + 1}`}
-          disabled={!hasText}
-          onClick={clearText}
-        />
-        <IconBtn icon={ExtraIcons.kebab} label={`меню пункта ${index + 1}`} onClick={onMenu} />
-      </div>
+        {cloneElement(ExtraIcons.kebab, { size: 16, sw: 1.7 } as never)}
+      </button>
     </div>
-  );
-}
-
-function IconBtn({
-  icon,
-  label,
-  disabled,
-  onClick,
-}: {
-  icon: ReactElement;
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      disabled={disabled}
-      // preventDefault на mousedown — не сбрасывать фокус инпута при клике по иконке
-      onMouseDown={(e) => e.preventDefault()}
-      onClick={onClick}
-      style={{
-        width: 26,
-        height: 26,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: "transparent",
-        border: "none",
-        borderRadius: 6,
-        padding: 0,
-        cursor: disabled ? "default" : "pointer",
-        color: "var(--fg-3)",
-        opacity: disabled ? 0.3 : 1,
-        WebkitTapHighlightColor: "transparent",
-      }}
-    >
-      {cloneElement(icon, { size: 15, sw: 1.7 } as never)}
-    </button>
   );
 }

@@ -1,8 +1,8 @@
-/* Строка добавления нового пункта task-list (US-4): плейсхолдер «+ добавить пункт»
-   → инлайн-инпут (Enter добавляет и держит фокус, Esc/blur пустого отменяет). */
-import { useCallback, useEffect, useRef, useState, cloneElement } from "react";
-import { Icons } from "./icons";
-import { EDIT_INPUT_STYLE, MAX_TASK_LEN } from "./taskEditorShared";
+/* Строка добавления нового пункта task-list (дизайн CleanTaskList): пунктирный
+   квадрат 20px + italic «+ Добавить пункт» → инлайн-инпут (Enter добавляет и
+   держит фокус, Esc/blur пустого отменяет). */
+import { useCallback, useEffect, useRef, useState } from "react";
+import { MAX_TASK_LEN } from "./taskEditorShared";
 
 export function AddRow({ onAdd }: { onAdd: (text: string) => void }) {
   const [active, setActive] = useState(false);
@@ -35,73 +35,70 @@ export function AddRow({ onAdd }: { onAdd: (text: string) => void }) {
     setActive(false);
   }, []);
 
-  const leadBox = (
+  const dashedBox = (
     <span
       style={{
-        width: 28,
-        height: 28,
-        margin: "0 0 0 -5px",
+        width: 20,
+        height: 20,
+        borderRadius: 5,
+        border: "1.5px dashed var(--border-2)",
         flexShrink: 0,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        color: "var(--fg-3)",
+        marginTop: 2,
       }}
-    >
-      {cloneElement(Icons.plus, { size: 15, sw: 1.8 } as never)}
-    </span>
+    />
   );
 
-  if (!active) {
-    return (
-      <button
-        type="button"
-        onClick={() => setActive(true)}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          width: "100%",
-          textAlign: "left",
-          background: "transparent",
-          border: "none",
-          padding: "5px 4px",
-          margin: 0,
-          borderRadius: 8,
-          cursor: "pointer",
-          color: "var(--fg-3)",
-          WebkitTapHighlightColor: "transparent",
-        }}
-      >
-        {leadBox}
-        <span style={{ fontSize: 14.5, lineHeight: 1.4 }}>добавить пункт</span>
-      </button>
-    );
-  }
-
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "5px 4px", borderRadius: 8 }}>
-      {leadBox}
-      <input
-        ref={inputRef}
-        className="task-edit-input"
-        value={draft}
-        maxLength={MAX_TASK_LEN}
-        placeholder="новый пункт"
-        aria-label="новый пункт"
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={submitClose}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            submitKeep();
-          } else if (e.key === "Escape") {
-            e.preventDefault();
-            cancel();
-          }
-        }}
-        style={EDIT_INPUT_STYLE}
-      />
+    <div
+      onClick={() => !active && setActive(true)}
+      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0", cursor: "text" }}
+    >
+      {dashedBox}
+      {active ? (
+        <input
+          ref={inputRef}
+          value={draft}
+          maxLength={MAX_TASK_LEN}
+          placeholder="Новый пункт"
+          aria-label="новый пункт"
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={submitClose}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              submitKeep();
+            } else if (e.key === "Escape") {
+              e.preventDefault();
+              cancel();
+            }
+          }}
+          style={{
+            flex: 1,
+            minWidth: 0,
+            border: "none",
+            outline: "none",
+            background: "transparent",
+            font: "inherit",
+            fontSize: 15,
+            color: "var(--fg-1)",
+            letterSpacing: "-0.005em",
+          }}
+        />
+      ) : (
+        <span
+          style={{
+            flex: 1,
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: 14,
+            color: "var(--fg-3)",
+            letterSpacing: 0,
+            lineHeight: 1.4,
+          }}
+        >
+          + Добавить пункт
+        </span>
+      )}
     </div>
   );
 }

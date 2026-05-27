@@ -218,7 +218,6 @@ export function TaskListEditor({
             onEdit={(text) => editText(i, text)}
             onMenu={() => setMenuIndex(i)}
             onOpenDeadline={() => setDeadlineIndex(i)}
-            onClearDeadline={() => setDeadline(i, null)}
           />
         ))}
         <AddRow onAdd={addTask} />
