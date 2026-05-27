@@ -1,6 +1,7 @@
-/* ChatRow + DaySeparator — ported 1:1 from
-   docs/design-system-miniapp/ds/ChatRow.jsx. Inline styles verbatim. */
-import { cloneElement, type ReactNode } from "react";
+/* ChatRow + DaySeparator — дизайн ui_kits/mini_app/ChatRow.jsx (variant A):
+   typed-аватар для системных видов (список/голос), archive — мягкий градиент,
+   нет разделителей, padding 14×16, gap 7 title↔preview, preview = UI-sans. */
+import { cloneElement, type ReactNode, type CSSProperties } from "react";
 import { Icons, ExtraIcons } from "./icons";
 import { Glyph, Pulse } from "./atoms";
 
@@ -15,8 +16,15 @@ export const avatarGradients: Record<AvatarTone, string> = {
   moss: "linear-gradient(135deg, #B0C28E 0%, #6E8444 100%)",
 };
 
+/** outline tone для typed-аватара */
+const typedTone: Record<string, string> = {
+  sage: "#3F6B4B",
+  clay: "#8A4A30",
+  honey: "#7A5828",
+};
+
 export interface AvatarSpec {
-  kind?: "letter" | "brain" | "task" | "archive" | "icon";
+  kind?: "letter" | "typed" | "brain" | "task" | "archive" | "icon";
   tone?: AvatarTone;
   letter?: string;
   glyph?: string;
@@ -25,7 +33,7 @@ export interface AvatarSpec {
 }
 
 export function Avatar({ kind = "letter", tone = "sage", letter = "B", glyph, icon, size = 46 }: AvatarSpec) {
-  const base: React.CSSProperties = {
+  const base: CSSProperties = {
     width: size,
     height: size,
     borderRadius: "50%",
@@ -35,44 +43,67 @@ export function Avatar({ kind = "letter", tone = "sage", letter = "B", glyph, ic
     justifyContent: "center",
     boxShadow: "0 1px 0 rgba(255,255,255,0.4) inset, 0 2px 6px rgba(60,40,25,0.06)",
   };
+
+  // typed — кольцо + Lora-italic категорийная буква (список/голос/напоминание)
+  if (kind === "typed" || kind === "task") {
+    const ring = typedTone[tone] || typedTone.sage;
+    return (
+      <div
+        style={{
+          ...base,
+          background: "rgba(255,252,246,0.6)",
+          border: `1.5px solid ${ring}`,
+          color: ring,
+          fontFamily: "var(--font-display)",
+          fontStyle: "italic",
+          fontWeight: 500,
+          fontSize: Math.round(size * 0.46),
+          letterSpacing: "-0.02em",
+          lineHeight: 1,
+          boxShadow: "inset 0 1px 0 rgba(255,255,255,0.6)",
+        }}
+      >
+        {letter}
+      </div>
+    );
+  }
+
   if (kind === "brain") {
     return (
       <div style={{ ...base, background: "#fff", border: "1px solid rgba(255,255,255,0.6)" }}>
-        <Glyph ch={glyph || "✦"} size={24} />
+        <Glyph ch={glyph || "✦"} size={Math.round(size * 0.52)} />
       </div>
     );
   }
-  if (kind === "task") {
-    return (
-      <div style={{ ...base, background: "rgba(255,252,246,0.9)", border: "1.5px solid var(--brand-primary)", color: "var(--brand-primary)" }}>
-        {cloneElement(Icons.task, { size: 22, sw: 1.6 } as never)}
-      </div>
-    );
-  }
+
+  // archive — мягкий градиент вместо пунктира
   if (kind === "archive") {
     return (
-      <div style={{ ...base, background: "rgba(234,227,207,0.9)", border: "1px dashed var(--border-strong)", color: "var(--fg-3)" }}>
-        {cloneElement(Icons.archive, { size: 20, sw: 1.4 } as never)}
+      <div style={{ ...base, background: "linear-gradient(135deg, #DBD6CB, #C6BFB1)", color: "rgba(60,56,48,0.55)", opacity: 0.85 }}>
+        {cloneElement(Icons.archive, { size: Math.round(size * 0.45), sw: 1.4 } as never)}
       </div>
     );
   }
+
   if (kind === "icon") {
     return (
-      <div style={{ ...base, background: avatarGradients[tone] || avatarGradients.sage, color: "#fff" }}>
-        {icon}
-      </div>
+      <div style={{ ...base, background: avatarGradients[tone] || avatarGradients.sage, color: "#fff" }}>{icon}</div>
     );
   }
+
+  // letter (default) — градиент + белая Lora-italic буква
   return (
     <div
       style={{
         ...base,
         background: avatarGradients[tone] || avatarGradients.sage,
         color: tone === "honey" ? "#2B1F12" : "#fff",
-        fontFamily: "var(--font-ui)",
+        fontFamily: "var(--font-display)",
+        fontStyle: "italic",
         fontWeight: 500,
-        fontSize: 16,
+        fontSize: Math.round(size * 0.46),
         letterSpacing: "-0.01em",
+        lineHeight: 1,
       }}
     >
       {letter}
@@ -115,19 +146,25 @@ export function ChatRow({
   muted = false,
   onClick,
   onMore,
-  isLast = false,
 }: ChatRowProps) {
   return (
     <div
       onClick={onClick}
       style={{
         display: "flex",
-        alignItems: "center",
-        gap: 12,
-        padding: "10px 16px",
+        alignItems: "flex-start",
+        gap: 14,
+        padding: "14px 16px",
         cursor: "pointer",
         position: "relative",
+        borderRadius: 14,
         transition: "background 160ms var(--ease-out)",
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.background = "rgba(255,252,246,0.45)";
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.background = "transparent";
       }}
     >
       {unread && (
@@ -147,33 +184,12 @@ export function ChatRow({
 
       <Avatar {...avatar} />
 
-      <div
-        style={{
-          flex: 1,
-          minWidth: 0,
-          display: "flex",
-          flexDirection: "column",
-          gap: 3,
-          position: "relative",
-          paddingBottom: !isLast ? 10 : 0,
-          marginBottom: !isLast ? -10 : 0,
-        }}
-      >
-        {!isLast && (
+      <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 7, paddingTop: 1 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span
             style={{
-              position: "absolute",
-              left: 0,
-              right: -4,
-              bottom: 0,
-              borderBottom: "0.5px solid var(--border-1)",
-            }}
-          />
-        )}
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <span
-            style={{
-              fontSize: 14.5,
+              fontFamily: "var(--font-ui)",
+              fontSize: 15,
               fontWeight: 500,
               letterSpacing: "-0.01em",
               color: muted ? "var(--fg-3)" : "var(--fg-1)",
@@ -182,6 +198,7 @@ export function ChatRow({
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
+              lineHeight: 1.2,
             }}
           >
             {name}
@@ -209,13 +226,12 @@ export function ChatRow({
             style={{
               flex: 1,
               minWidth: 0,
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              fontWeight: 400,
+              fontFamily: "var(--font-ui)",
               fontSize: 13.5,
+              fontWeight: 400,
               color: muted ? "var(--fg-4)" : "var(--fg-2)",
               lineHeight: 1.4,
-              letterSpacing: 0,
+              letterSpacing: "-0.005em",
               whiteSpace: "nowrap",
               overflow: "hidden",
               textOverflow: "ellipsis",
@@ -230,10 +246,12 @@ export function ChatRow({
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontStyle: "normal",
                   fontSize: 11,
                   color: "var(--fg-3)",
                   letterSpacing: ".04em",
+                  padding: "1px 6px",
+                  borderRadius: 4,
+                  background: "rgba(60,40,25,0.05)",
                   marginRight: 6,
                 }}
               >
@@ -279,7 +297,7 @@ export function ChatRow({
                 borderRadius: "50%",
                 background: "transparent",
                 border: "none",
-                color: "var(--fg-3)",
+                color: "var(--fg-4)",
                 cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
@@ -304,7 +322,6 @@ export function DaySeparator({ label }: { label: ReactNode }) {
           fontSize: 10,
           color: "var(--fg-3)",
           letterSpacing: ".12em",
-          textTransform: "uppercase",
           fontWeight: 500,
           padding: "4px 12px",
           background: "rgba(234,227,207,0.7)",

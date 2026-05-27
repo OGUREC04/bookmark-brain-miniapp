@@ -45,11 +45,10 @@ function TabItem({
           flexDirection: "column",
           alignItems: "center",
           gap: 3,
-          padding: "7px 10px 6px",
-          borderRadius: 16,
-          background: active ? "var(--brand-primary-tint)" : "transparent",
-          color: active ? "var(--brand-primary-press)" : "var(--fg-3)",
-          transition: "background 220ms var(--ease-out), color 220ms var(--ease-out)",
+          padding: "8px 0",
+          background: "transparent",
+          color: active ? "var(--brand-primary)" : "var(--fg-3)",
+          transition: "color 220ms var(--ease-out)",
           minWidth: 0,
           maxWidth: "100%",
         }}
@@ -69,7 +68,7 @@ function TabItem({
         <span
           style={{
             fontFamily: "var(--font-ui)",
-            fontSize: 10.5,
+            fontSize: 11,
             fontWeight: active ? 600 : 500,
             letterSpacing: "-0.005em",
             lineHeight: 1.1,
@@ -138,8 +137,8 @@ export function BottomNav({
         aria-label="создать"
         style={{
           pointerEvents: "auto",
-          width: 54,
-          height: 54,
+          width: 56,
+          height: 56,
           borderRadius: "50%",
           background: "var(--brand-primary)",
           color: "var(--fg-on-brand)",
@@ -163,7 +162,7 @@ export function BottomNav({
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
-        {cloneElement(Icons.plus, { size: 22, sw: 2 } as never)}
+        {cloneElement(Icons.plus, { size: 26, sw: 2 } as never)}
       </button>
     </div>
   );

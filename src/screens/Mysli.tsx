@@ -12,57 +12,92 @@ import { formatDaySeparator } from "../lib/formatters";
 
 type Filter = "all" | "fav" | "task" | "voice";
 
-function ReminderBell({ count = 0, onClick }: { count?: number; onClick?: () => void }) {
+function BellPillCompact({ count = 0, onClick }: { count?: number; onClick?: () => void }) {
+  const has = count > 0;
   return (
     <button
       onClick={onClick}
       aria-label="напоминания"
       style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "5px 10px 5px 8px",
-        background: "var(--brand-primary-tint)",
-        border: "1px solid rgba(122,156,122,0.25)",
-        borderRadius: 999,
+        position: "relative",
+        background: has ? "var(--brand-primary-tint)" : "var(--surface-glass)",
+        border: has ? "1px solid rgba(122,156,122,0.35)" : "1px solid var(--border-1)",
+        width: 46,
+        height: 46,
+        borderRadius: "50%",
         cursor: "pointer",
-        color: "var(--brand-primary-press)",
-        boxShadow: "0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(60,90,60,0.06)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: has ? "var(--brand-primary-press)" : "var(--fg-2)",
+        flexShrink: 0,
+        boxShadow: "var(--shadow-glass-card)",
+        transition: "all 200ms var(--ease-out)",
       }}
     >
-      {cloneElement(ExtraIcons.clock, { size: 14, sw: 1.6 } as never)}
-      <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, fontWeight: 600, letterSpacing: ".04em" }}>{count}</span>
+      {cloneElement(ExtraIcons.bell, { size: 19, sw: 1.7 } as never)}
+      {has && (
+        <span
+          style={{
+            position: "absolute",
+            top: -4,
+            right: -4,
+            minWidth: 19,
+            height: 19,
+            padding: "0 5px",
+            borderRadius: 999,
+            background: "var(--brand-primary)",
+            color: "var(--fg-on-brand)",
+            fontFamily: "var(--font-mono)",
+            fontSize: 11,
+            fontWeight: 600,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            border: "2px solid var(--bg-page)",
+            lineHeight: 1,
+            boxSizing: "border-box",
+          }}
+        >
+          {count}
+        </span>
+      )}
     </button>
   );
 }
 
-function FilterChipsRow({ active, onChange }: { active: Filter; onChange: (f: Filter) => void }) {
+function FilterChips({
+  active,
+  onChange,
+  counts,
+}: {
+  active: Filter;
+  onChange: (f: Filter) => void;
+  counts: Record<Filter, number>;
+}) {
   const items: { id: Filter; label: string; glyph?: string }[] = [
-    { id: "all", label: "все" },
+    { id: "all", label: "Все" },
     { id: "fav", glyph: "★", label: "" },
-    { id: "task", label: "задачи" },
-    { id: "voice", label: "голос" },
+    { id: "task", label: "Задачи" },
+    { id: "voice", label: "Голос" },
   ];
   return (
     <div
       style={{
-        position: "sticky",
-        top: 0,
-        zIndex: 4,
-        padding: "8px 16px 10px",
-        marginBottom: 4,
-        background:
-          "linear-gradient(180deg, rgba(247,243,233,0.92) 0%, rgba(247,243,233,0.85) 70%, rgba(247,243,233,0) 100%)",
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
+        flex: 1,
+        minWidth: 0,
         display: "flex",
         gap: 6,
         overflowX: "auto",
+        overflowY: "visible",
+        padding: "6px 0",
+        margin: "-6px 0",
         scrollbarWidth: "none",
       }}
     >
       {items.map((it) => {
         const on = active === it.id;
+        const c = counts[it.id];
         return (
           <button
             key={it.id}
@@ -76,21 +111,23 @@ function FilterChipsRow({ active, onChange }: { active: Filter; onChange: (f: Fi
               borderRadius: 999,
               fontFamily: "var(--font-ui)",
               fontSize: 12.5,
-              fontWeight: 500,
+              fontWeight: on ? 600 : 500,
               letterSpacing: "-0.005em",
-              background: on ? "var(--brand-primary)" : "rgba(255,252,246,0.55)",
+              background: on ? "var(--brand-primary)" : "var(--surface-glass)",
               color: on ? "var(--fg-on-brand)" : "var(--fg-2)",
-              border: on ? "none" : "1px solid rgba(255,255,255,0.6)",
-              backdropFilter: on ? "none" : "blur(12px)",
-              WebkitBackdropFilter: on ? "none" : "blur(12px)",
-              boxShadow: on
-                ? "0 1px 0 rgba(255,255,255,0.2) inset, 0 2px 6px rgba(122,156,122,0.22)"
-                : "0 1px 0 rgba(255,255,255,0.6) inset, 0 1px 3px rgba(60,40,25,0.04)",
+              border: on ? "1px solid transparent" : "1px solid var(--glass-edge)",
+              backdropFilter: on ? "none" : "var(--blur-chip)",
+              WebkitBackdropFilter: on ? "none" : "var(--blur-chip)",
+              boxShadow: on ? "0 4px 12px rgba(122,156,122,0.35)" : "var(--shadow-glass-chip)",
               cursor: "pointer",
+              whiteSpace: "nowrap",
             }}
           >
             {it.glyph && <Glyph ch={it.glyph} size={13} color={on ? "currentColor" : "var(--brand-primary)"} />}
             {it.label}
+            {it.id !== "fav" && c > 0 && (
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.7, fontWeight: 500 }}>{c}</span>
+            )}
           </button>
         );
       })}
@@ -98,33 +135,32 @@ function FilterChipsRow({ active, onChange }: { active: Filter; onChange: (f: Fi
   );
 }
 
-function ViewToggle({ view, setView }: { view: "chat" | "cards"; setView: (v: "chat" | "cards") => void }) {
-  const btn = (id: "chat" | "cards", label: string, icon: React.ReactElement) => (
-    <button
-      onClick={() => setView(id)}
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 6,
-        padding: "6px 12px",
-        borderRadius: 999,
-        cursor: "pointer",
-        fontFamily: "var(--font-ui)",
-        fontSize: 12,
-        fontWeight: 500,
-        letterSpacing: "-0.005em",
-        background: view === id ? "rgba(255,252,246,0.85)" : "transparent",
-        border: view === id ? "1px solid rgba(255,255,255,0.6)" : "1px solid transparent",
-        color: view === id ? "var(--fg-1)" : "var(--fg-3)",
-        backdropFilter: view === id ? "blur(12px)" : "none",
-        WebkitBackdropFilter: view === id ? "blur(12px)" : "none",
-        boxShadow: view === id ? "0 1px 0 rgba(255,255,255,0.6) inset, 0 2px 6px rgba(60,40,25,0.05)" : "none",
-      }}
-    >
-      {cloneElement(icon, { size: 14, sw: 1.6 } as never)}
-      {label}
-    </button>
-  );
+function ViewSegment({ view, setView }: { view: "chat" | "cards"; setView: (v: "chat" | "cards") => void }) {
+  const btn = (id: "chat" | "cards", icon: React.ReactElement) => {
+    const on = view === id;
+    return (
+      <button
+        onClick={() => setView(id)}
+        aria-label={id}
+        aria-pressed={on}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 32,
+          height: 28,
+          borderRadius: 999,
+          cursor: "pointer",
+          background: on ? "var(--surface-glass-strong)" : "transparent",
+          border: on ? "1px solid var(--glass-edge)" : "1px solid transparent",
+          color: on ? "var(--fg-1)" : "var(--fg-3)",
+          boxShadow: on ? "var(--shadow-glass-chip)" : "none",
+        }}
+      >
+        {cloneElement(icon, { size: 15, sw: 1.6 } as never)}
+      </button>
+    );
+  };
   return (
     <div
       style={{
@@ -135,10 +171,11 @@ function ViewToggle({ view, setView }: { view: "chat" | "cards"; setView: (v: "c
         backdropFilter: "blur(12px)",
         WebkitBackdropFilter: "blur(12px)",
         borderRadius: 999,
+        flexShrink: 0,
       }}
     >
-      {btn("chat", "chat", Icons.feed)}
-      {btn("cards", "cards", Icons.cards)}
+      {btn("chat", Icons.feed)}
+      {btn("cards", Icons.cards)}
     </div>
   );
 }
@@ -222,65 +259,28 @@ export function MysliScreen({
   }, [reloadKey]);
 
   const filtered = items.filter((b) => matchesFilter(b, filter));
+  const counts: Record<Filter, number> = {
+    all: total,
+    fav: items.filter((b) => matchesFilter(b, "fav")).length,
+    task: items.filter((b) => matchesFilter(b, "task")).length,
+    voice: items.filter((b) => matchesFilter(b, "voice")).length,
+  };
 
   return (
-    <div style={{ padding: "6px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 16px",
-          marginBottom: 14,
-          marginTop: 4,
-          gap: 10,
-        }}
-      >
-        <h1 style={{ fontSize: 32, fontWeight: 500, letterSpacing: "-0.035em", margin: 0, color: "var(--fg-1)", lineHeight: 1 }}>
-          мысли
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
-              fontWeight: 500,
-              color: "var(--brand-primary)",
-              marginLeft: 6,
-              letterSpacing: "-0.01em",
-            }}
-          >
-            ·
-          </span>
-        </h1>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <ReminderBell count={reminderCount} onClick={onBell} />
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".06em", fontWeight: 500 }}>
-            {total}
-          </span>
+    <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* row 1 — поиск + колокольчик */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginTop: 2, marginBottom: 10 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SearchBar onFocus={onSearch} />
         </div>
+        <BellPillCompact count={reminderCount} onClick={onBell} />
       </div>
 
-      <div style={{ padding: "0 16px", marginBottom: 14 }}>
-        <SearchBar onFocus={onSearch} />
+      {/* row 2 — фильтр-чипы + переключатель вида */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginBottom: 14 }}>
+        <FilterChips active={filter} onChange={setFilter} counts={counts} />
+        <ViewSegment view={view} setView={setView} />
       </div>
-
-      <div style={{ padding: "0 16px", marginBottom: 10, display: "flex", alignItems: "center", gap: 8 }}>
-        <ViewToggle view={view} setView={setView} />
-        <span style={{ flex: 1 }} />
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 10,
-            color: "var(--fg-3)",
-            letterSpacing: ".12em",
-            textTransform: "uppercase",
-            fontWeight: 500,
-          }}
-        >
-          сегодня
-        </span>
-      </div>
-
-      <FilterChipsRow active={filter} onChange={setFilter} />
 
       {SHOW_SUGGESTIONS && !hideSuggest && view === "chat" && filter === "all" && !loading && items.length > 0 && (
         <SuggestionPager items={SUGGESTION_DEMO} onDismissAll={() => setHideSuggest(true)} />

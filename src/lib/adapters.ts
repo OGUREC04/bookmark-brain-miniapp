@@ -37,7 +37,7 @@ function toneOf(seed: string): Tone {
 export interface ChatRowData {
   id: string;
   avatar: {
-    kind: "letter" | "task" | "archive" | "icon";
+    kind: "letter" | "typed" | "task" | "archive" | "icon";
     tone?: Tone;
     letter?: string;
   };
@@ -62,11 +62,11 @@ export function bookmarkToChatRow(b: Bookmark): ChatRowData {
   if (b.is_archived) {
     avatar = { kind: "archive" };
   } else if (kind === "task") {
-    avatar = { kind: "task" };
-    src = "task";
+    avatar = { kind: "typed", tone: "sage", letter: "С" };
+    src = "список";
   } else if (kind === "voice") {
-    avatar = { kind: "icon", tone: toneOf(title) };
-    src = "voice";
+    avatar = { kind: "typed", tone: "clay", letter: "Г" };
+    src = "голос";
   } else {
     avatar = { kind: "letter", tone: toneOf(title), letter: (title.trim()[0] || "·").toUpperCase() };
     src = b.url ? hostOf(b.url) : undefined;
