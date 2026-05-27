@@ -179,6 +179,8 @@ export function App() {
         position: "relative",
         minHeight: "100vh",
         overflowX: "hidden",
+        // Главная и списки — однотонный фон; фирменный градиент только на заметке.
+        background: detail ? "var(--backdrop-gradient, var(--bg-page))" : "var(--bg-page)",
       }}
       className="app-shell"
     >

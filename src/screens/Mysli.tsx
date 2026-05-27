@@ -115,10 +115,10 @@ function FilterChips({
               letterSpacing: "-0.005em",
               background: on ? "var(--brand-primary)" : "var(--surface-glass)",
               color: on ? "var(--fg-on-brand)" : "var(--fg-2)",
-              border: on ? "1px solid transparent" : "1px solid var(--glass-edge)",
+              border: on ? "1px solid transparent" : "1px solid var(--border-1)",
               backdropFilter: on ? "none" : "var(--blur-chip)",
               WebkitBackdropFilter: on ? "none" : "var(--blur-chip)",
-              boxShadow: on ? "0 4px 12px rgba(122,156,122,0.35)" : "var(--shadow-glass-chip)",
+              boxShadow: on ? "0 1px 3px rgba(122,156,122,0.20)" : "none",
               cursor: "pointer",
               whiteSpace: "nowrap",
             }}
