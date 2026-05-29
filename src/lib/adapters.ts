@@ -9,9 +9,16 @@ import { tagStop } from "./tagPalette";
  * Безопасный заголовок закладки: title → срез raw_text → плейсхолдер.
  * raw_text типизирован string, но backend может вернуть null/"" для
  * закладок в обработке — без guard .slice() кидал runtime-ошибку.
+ *
+ * Когда title пуст и raw_text === url (голая ссылка, AI ещё не извлёк
+ * контекст) — показываем host, иначе длинный URL разъезжается в ленте
+ * и дублируется с src-пилюлей. Тот же фикс уже в DetailScreen.
  */
 export function titleOf(b: Bookmark, max = 80): string {
-  return b.title || (b.raw_text ?? "").slice(0, max) || "без названия";
+  if (b.title) return b.title;
+  const raw = (b.raw_text ?? "").trim();
+  if (raw && /^https?:\/\//i.test(raw) && b.url) return hostOf(b.url) || "ссылка";
+  return raw.slice(0, max) || "без названия";
 }
 
 /** host из url без www/протокола: "https://www.x.com/a" → "x.com". */
@@ -69,8 +76,16 @@ export function bookmarkToChatRow(b: Bookmark): ChatRowData {
     src = "голос";
   } else {
     avatar = { kind: "letter", tone: toneOf(title), letter: (title.trim()[0] || "·").toUpperCase() };
-    src = b.url ? hostOf(b.url) : undefined;
+    const host = b.url ? hostOf(b.url) : undefined;
+    // Если name (после titleOf-фикса) уже = host, src-пилюля будет дубликатом.
+    src = host && host !== title ? host : undefined;
   }
+
+  // Для голой ссылки без summary — пустой preview (URL целиком в preview выглядит
+  // ужасно и дублируется с name=host). Эвристика: raw_text — URL И title==host.
+  const rawIsUrl = /^https?:\/\//i.test((b.raw_text ?? "").trim());
+  const bareLink = rawIsUrl && !b.title && !b.summary;
+  const previewText = bareLink ? "" : b.summary || (b.raw_text ?? "").slice(0, 80);
 
   return {
     id: b.id,
@@ -79,7 +94,7 @@ export function bookmarkToChatRow(b: Bookmark): ChatRowData {
     time: formatRelativeDate(b.created_at),
     preview: tp
       ? `${tp.done}/${tp.total} · ${b.summary || (b.raw_text ?? "").slice(0, 60)}`
-      : b.summary || (b.raw_text ?? "").slice(0, 80),
+      : previewText,
     src,
     star: b.is_favorite,
     pulsing: b.ai_status !== "completed",

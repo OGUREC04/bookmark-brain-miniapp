@@ -19,7 +19,14 @@ export class AuthExpiredError extends Error {
 }
 
 async function fetchNewToken(): Promise<string> {
-  const initData = getInitData();
+  // DEV-only fallback: when running in a plain browser (no Telegram client),
+  // allow headless E2E to inject init_data via localStorage. The backend will
+  // ONLY accept this if its triple-gated DEV_AUTH_BYPASS is on; in prod this
+  // path is harmless because the backend rejects every "dev:" init_data.
+  let initData = getInitData();
+  if (!initData && typeof localStorage !== "undefined") {
+    initData = localStorage.getItem("__dev_init_data") ?? "";
+  }
   if (!initData) {
     throw new AuthExpiredError("No Telegram initData available");
   }
