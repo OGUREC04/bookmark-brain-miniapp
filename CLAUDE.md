@@ -29,6 +29,10 @@ npm run build      # tsc (строгий) + vite build — прод-сборка
 
 **`tsc` падает на любой ошибке типов — это gate.** Прод-сборка зелёная = типы сошлись.
 
+### Headless E2E (без Telegram-клиента)
+
+`src/lib/api.ts` имеет DEV-only fallback: если `getInitData()` пустой (запуск в браузере, не в Telegram) — берётся `localStorage.__dev_init_data`. Бэкенд принимает `dev:<id>` только за тройным guard'ом (см. монорепо `docs/ARCHITECTURE.md` → «DEV-only auth bypass»). В проде это безвредно — бэк отбивает все `dev:` без guard'а.
+
 ## 4 решения, которые НЕЛЬЗЯ ломать по незнанию
 
 1. **Навигация state-driven, роутера НЕТ.** Навигация = `useState` в `App.tsx`
