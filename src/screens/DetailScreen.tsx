@@ -2,7 +2,7 @@
    Плоская editorial-раскладка (без карточки): мета-строка с инлайн-тегами,
    Lora-italic заголовок, summary, редактор списка, AI-блок «brain»,
    полноширинная кнопка источника. */
-import { cloneElement } from "react";
+import { cloneElement, useState, useRef, useCallback } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { type Bookmark } from "../lib/api";
@@ -41,6 +41,7 @@ export function DetailScreen({
   onMore,
   onChanged,
   onToast,
+  onSaveText,
 }: {
   bookmark: Bookmark;
   onBack: () => void;
@@ -49,15 +50,57 @@ export function DetailScreen({
   onChanged?: () => void;
   /** Тост (например, ошибка сохранения списка). */
   onToast?: (msg: string) => void;
+  /** FLAGS.TEXT_EDIT (тикет 0rn): сохранить тело текста. undefined = редактирование выключено. */
+  onSaveText?: (rawText: string) => Promise<void>;
 }) {
   const host = bookmark.url ? hostOf(bookmark.url) : null;
-  const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
+  const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "Без названия";
   // Голая ссылка как заголовок выглядит уродливо (длинный URL) — показываем хост.
   const titleIsUrl = isUrl(rawTitle);
   const title = titleIsUrl ? host || "Ссылка" : rawTitle;
   const isTaskList = bookmark.structured_data?.type === "task_list";
   // если заголовок = хост, не дублируем хост в мете
   const meta = [titleIsUrl ? null : host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
+
+  // FLAGS.TEXT_EDIT — inline-правка тела текста (тикет 0rn). Доступна когда родитель дал onSaveText.
+  // Тело = raw_text (каноничное поле; для голосовых бэк уточнит — см. бриф BOOKMARK-TEXT-EDIT).
+  const canEditText = !!onSaveText && !isTaskList;
+  // Для голой ссылки тело пустое → даём «дописать заметку» (raw_text=url не показываем как текст).
+  const bodyText = isUrl(bookmark.raw_text ?? "") ? "" : (bookmark.raw_text ?? "");
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(bodyText);
+  const [saving, setSaving] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement | null>(null);
+  const autoGrow = useCallback(() => {
+    const el = taRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
+  const startEdit = () => {
+    setDraft(bodyText);
+    setEditing(true);
+    requestAnimationFrame(() => {
+      taRef.current?.focus();
+      autoGrow();
+    });
+  };
+  const saveEdit = async () => {
+    const next = draft.trim();
+    if (!next || next === bodyText.trim() || !onSaveText) {
+      setEditing(false);
+      return;
+    }
+    setSaving(true);
+    try {
+      await onSaveText(next);
+      setEditing(false);
+    } catch {
+      onToast?.("Не удалось сохранить");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   return (
     <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
@@ -133,11 +176,116 @@ export function DetailScreen({
           </>
         )}
 
-        {/* raw text (non-tasklist notes) — но не голый URL (он уже в кнопке источника) */}
-        {!isTaskList && bookmark.raw_text && bookmark.raw_text !== rawTitle && !isUrl(bookmark.raw_text) && (
-          <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap" }}>
-            {bookmark.raw_text}
-          </p>
+        {/* raw text (non-tasklist notes) — но не голый URL (он уже в кнопке источника).
+            FLAGS.TEXT_EDIT: canEditText → inline-редактор; иначе read-only абзац как раньше. */}
+        {!canEditText &&
+          !isTaskList &&
+          bookmark.raw_text &&
+          bookmark.raw_text !== rawTitle &&
+          !isUrl(bookmark.raw_text) && (
+            <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap" }}>
+              {bookmark.raw_text}
+            </p>
+          )}
+
+        {canEditText && (
+          <div style={{ margin: "0 0 22px" }}>
+            {editing ? (
+              <>
+                <textarea
+                  ref={taRef}
+                  value={draft}
+                  onChange={(e) => {
+                    setDraft(e.target.value);
+                    autoGrow();
+                  }}
+                  aria-label="текст заметки"
+                  placeholder="добавь текст…"
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    border: "1px solid var(--border-1)",
+                    borderRadius: 14,
+                    background: "rgba(234,227,207,0.35)",
+                    padding: "12px 14px",
+                    outline: "none",
+                    resize: "none",
+                    overflow: "hidden",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 14.5,
+                    lineHeight: 1.55,
+                    color: "var(--fg-1)",
+                    caretColor: "var(--brand-primary)",
+                    letterSpacing: "-0.005em",
+                  }}
+                />
+                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                  <button
+                    onClick={saveEdit}
+                    disabled={saving}
+                    style={{
+                      flex: 1,
+                      padding: "10px 16px",
+                      borderRadius: 12,
+                      background: "var(--brand-primary)",
+                      color: "var(--fg-on-brand)",
+                      border: "none",
+                      fontFamily: "var(--font-ui)",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: saving ? "not-allowed" : "pointer",
+                      opacity: saving ? 0.6 : 1,
+                    }}
+                  >
+                    {saving ? "Сохраняю…" : "Готово"}
+                  </button>
+                  <button
+                    onClick={() => setEditing(false)}
+                    disabled={saving}
+                    style={{
+                      padding: "10px 16px",
+                      borderRadius: 12,
+                      background: "transparent",
+                      color: "var(--fg-2)",
+                      border: "1px solid var(--border-1)",
+                      fontFamily: "var(--font-ui)",
+                      fontSize: 14,
+                      fontWeight: 500,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Отмена
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div
+                onClick={startEdit}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    startEdit();
+                  }
+                }}
+                style={{ cursor: "text", display: "flex", alignItems: "flex-start", gap: 8 }}
+              >
+                {bodyText ? (
+                  <p style={{ flex: 1, fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                    {bodyText}
+                  </p>
+                ) : (
+                  <span style={{ flex: 1, fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>
+                    + добавить текст
+                  </span>
+                )}
+                <span style={{ flexShrink: 0, marginTop: 2, fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--brand-primary)" }}>
+                  Изменить
+                </span>
+              </div>
+            )}
+          </div>
         )}
 
         {/* AI «brain» block — key ideas joined by · */}

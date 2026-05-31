@@ -18,6 +18,7 @@ import {
   type SpaceOption,
 } from "./components/ds/Sheets";
 import { api, type Bookmark, type Folder } from "./lib/api";
+import { FLAGS } from "./lib/flags";
 import { targetOf, groupReminders } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
 
@@ -196,6 +197,17 @@ export function App() {
             onMore={() => openActions(detail)}
             onChanged={reload}
             onToast={setToast}
+            // FLAGS.TEXT_EDIT (тикет 0rn): сохранить тело текста → refetch (ai_status может
+            // переключиться в processing) → обновить detail и ленту.
+            onSaveText={
+              FLAGS.TEXT_EDIT
+                ? async (rawText: string) => {
+                    const updated = await api.updateBookmarkText(detail.id, rawText);
+                    setDetail(updated);
+                    reload();
+                  }
+                : undefined
+            }
           />
         ) : space ? (
           <SpaceDetailScreen
@@ -289,10 +301,15 @@ export function App() {
           initialISO={sheet.initialISO}
           onDismiss={closeSheet}
           onBack={() => setSheet({ type: "reminders" })}
-          onConfirm={(iso) =>
+          onConfirm={(iso, text) =>
             runAction(async () => {
-              // snooze патчит только fire_at; правка текста на переносе не персистится (бэк-лимит)
-              await api.reminders.snooze(sheet.reminderId, iso);
+              // FLAGS.TEXT_EDIT (тикет 8uu): когда бэк примет text — переносим И правим текст.
+              // Иначе snooze патчит только fire_at (правка текста не персистится, бэк-лимит).
+              if (FLAGS.TEXT_EDIT) {
+                await api.reminders.update(sheet.reminderId, { fireAt: iso, text });
+              } else {
+                await api.reminders.snooze(sheet.reminderId, iso);
+              }
               setSheet({ type: "reminders" });
               reload();
             })

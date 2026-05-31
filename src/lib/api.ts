@@ -305,11 +305,22 @@ export const api = {
       is_archived: boolean;
       title: string;
       structured_data: TaskListData | null;
+      // FLAGS.TEXT_EDIT — тело текста заметки (тикет 0rn). Бэк должен принять raw_text
+      // в BookmarkUpdate и выставить ai_status при переобработке (см. бриф BOOKMARK-TEXT-EDIT).
+      raw_text: string;
     }>
   ): Promise<Bookmark> {
     return request(`/api/v1/bookmarks/${id}`, {
       method: "PATCH",
       body: JSON.stringify(data),
+    });
+  },
+
+  /** FLAGS.TEXT_EDIT — правка тела текста заметки (тикет 0rn). Тонкая обёртка над PATCH. */
+  updateBookmarkText(id: string, rawText: string): Promise<Bookmark> {
+    return request(`/api/v1/bookmarks/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ raw_text: rawText }),
     });
   },
 
@@ -339,6 +350,20 @@ export const api = {
       return request(`/api/v1/reminders/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ fire_at: fireAt }),
+      });
+    },
+    /**
+     * FLAGS.TEXT_EDIT — перенос + правка текста (тикет 8uu). Шлёт fire_at и/или text.
+     * Бэк должен принять `text` в ReminderUpdate и записать в payload.text
+     * (см. бриф REMINDER-TEXT-EDIT). До контракта — не вызывается (флаг off).
+     */
+    update(id: string, data: { fireAt?: string; text?: string }): Promise<Reminder> {
+      return request(`/api/v1/reminders/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          ...(data.fireAt ? { fire_at: data.fireAt } : {}),
+          ...(data.text !== undefined ? { text: data.text } : {}),
+        }),
       });
     },
     cancel(id: string): Promise<void> {

@@ -8,6 +8,7 @@ import { Glyph } from "./atoms";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
 import { Calendar } from "./Calendar";
 import { TimeWheel } from "./TimeWheel";
+import { FLAGS } from "../../lib/flags";
 
 const CUSTOM = "custom";
 const ORIGINAL = "original";
@@ -78,7 +79,8 @@ export function ReminderPickerSheet({
   const init = initialISO ? new Date(initialISO) : null;
 
   // Перенос (snooze) сохраняет только время → текст read-only (правка не персистится, бэк-лимит).
-  const textReadOnly = !!initialISO;
+  // FLAGS.TEXT_EDIT (тикет 8uu) снимает блок: бэк начнёт принимать text → можно редактировать.
+  const textReadOnly = !!initialISO && !FLAGS.TEXT_EDIT;
   // Пресеты: при переносе первая карточка = исходное время (выбрана по умолчанию).
   const initParts = init ? fmtParts(init) : null;
   const presets = init
