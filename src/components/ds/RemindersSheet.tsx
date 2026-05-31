@@ -28,7 +28,7 @@ export function RemindersSheet({
 }) {
   const total = groups.reduce((s, g) => s + g.rows.length, 0);
   return (
-    <BottomSheet onDismiss={onDismiss} minHeight={340} paddingBottom={34}>
+    <BottomSheet onDismiss={onDismiss} minHeight={400} paddingBottom={40}>
       <SheetTitle
         title={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
@@ -73,10 +73,10 @@ export function RemindersSheet({
         </div>
       )}
       {groups.map((g) => (
-        <div key={g.label} style={{ marginBottom: 10 }}>
+        <div key={g.label} style={{ marginBottom: 18 }}>
           <div
             style={{
-              padding: "0 20px 6px",
+              padding: "0 20px 10px",
               fontFamily: "var(--font-ui)",
               fontSize: 12.5,
               letterSpacing: "-0.005em",
@@ -122,7 +122,7 @@ function ReminderRow({
           onSnooze?.();
         }
       }}
-      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", cursor: "pointer", position: "relative" }}
+      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "15px 16px", cursor: "pointer", position: "relative" }}
     >
       {!isLast && (
         <span style={{ position: "absolute", left: 70, right: 16, bottom: 0, borderBottom: "0.5px solid var(--border-1)" }} />

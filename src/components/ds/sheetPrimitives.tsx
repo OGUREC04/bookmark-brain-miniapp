@@ -97,11 +97,11 @@ export function SheetTitle({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: onBack ? "8px 16px 16px 12px" : "8px 16px 16px 20px",
+        padding: onBack ? "14px 16px 18px 12px" : "14px 16px 18px 20px",
         gap: 10,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, minWidth: 0, flex: 1 }}>
         {onBack && <SheetBackBtn onClick={onBack} />}
         <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--fg-1)", margin: 0, minWidth: 0 }}>
           {title}

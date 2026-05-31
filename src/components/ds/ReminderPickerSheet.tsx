@@ -202,8 +202,8 @@ export function ReminderPickerSheet({
       {/* текст — закреплён (не скроллится), как пункт списка (textarea, brand-caret, ×-очистка) */}
       <div
           style={{
-            margin: "0 16px 18px",
-            padding: "14px 16px",
+            margin: "4px 16px 22px",
+            padding: "15px 16px",
             background: "rgba(234,227,207,0.45)",
             border: "1px solid var(--border-1)",
             borderRadius: 14,
@@ -285,7 +285,7 @@ export function ReminderPickerSheet({
       <div style={{ maxHeight: "58vh", overflowY: "auto", overscrollBehavior: "contain" }}>
         {!isCustom && (
           <>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10, padding: "0 16px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px" }}>
               {presets.map((s) => {
                 const on = picked === s.id;
                 return (
@@ -311,7 +311,7 @@ export function ReminderPickerSheet({
               })}
             </div>
 
-            <div style={{ padding: "12px 16px 0" }}>
+            <div style={{ padding: "16px 16px 0" }}>
               <button
                 onClick={() => { taRef.current?.blur(); setPicked(CUSTOM); }}
                 style={{
