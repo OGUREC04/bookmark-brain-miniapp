@@ -1,41 +1,11 @@
 /* ЭКРАН 4 — Я. Дизайн: ui_kits/mini_app Screens.jsx → MeScreen.
-   Профиль/статы из /users/me. Тогглы — локальные (бэкенд-настроек пока нет:
-   только GET /users/me), чевроны → тост «в разработке». */
+   Профиль/статы из /users/me. Бэкенда настроек пока нет (только GET /users/me),
+   поэтому ВСЕ пункты настроек — «в разработке» (тост по тапу, без рабочих тоглов:
+   тогл создавал ложное ощущение работающей настройки). */
 import { useState, useEffect, cloneElement, type ReactElement } from "react";
 import { Icons } from "../components/ds/icons";
 import { api, type UserInfo } from "../lib/api";
 import { formatDate } from "../lib/formatters";
-
-function Toggle({ on }: { on: boolean }) {
-  return (
-    <span
-      style={{
-        width: 36,
-        height: 22,
-        borderRadius: 999,
-        background: on ? "var(--brand-primary)" : "rgba(180,170,160,0.45)",
-        position: "relative",
-        transition: "background 200ms var(--ease-out)",
-        boxShadow: on ? "inset 0 1px 2px rgba(0,0,0,0.1)" : "inset 0 1px 2px rgba(0,0,0,0.06)",
-        flexShrink: 0,
-      }}
-    >
-      <span
-        style={{
-          position: "absolute",
-          top: 2,
-          left: on ? 16 : 2,
-          width: 18,
-          height: 18,
-          borderRadius: "50%",
-          background: "#fff",
-          transition: "left 200ms var(--ease-out)",
-          boxShadow: "0 1px 3px rgba(0,0,0,0.2)",
-        }}
-      />
-    </span>
-  );
-}
 
 function StatCard({ n, label, delta }: { n: string | number; label: string; delta?: string }) {
   return (
@@ -70,9 +40,6 @@ interface SettingRow {
   icon: ReactElement;
   label: string;
   value?: string;
-  toggle?: boolean;
-  chevron?: boolean;
-  onToggle?: () => void;
   onClick?: () => void;
 }
 
@@ -98,58 +65,60 @@ function SettingsCard({ rows }: { rows: SettingRow[] }) {
         boxShadow: "var(--glass-inner-light), var(--shadow-glass-sm)",
       }}
     >
-      {rows.map((it, i) => {
-        const interactive = it.onClick || it.onToggle;
-        return (
-          <button
-            key={it.label}
-            type="button"
-            onClick={it.onToggle ?? it.onClick}
-            role={it.toggle != null ? "switch" : undefined}
-            aria-checked={it.toggle != null ? it.toggle : undefined}
+      {rows.map((it, i) => (
+        <button
+          key={it.label}
+          type="button"
+          onClick={it.onClick}
+          style={{
+            width: "100%",
+            display: "flex",
+            alignItems: "center",
+            gap: 12,
+            padding: "13px 16px",
+            background: "transparent",
+            border: "none",
+            textAlign: "left",
+            borderBottom: i < rows.length - 1 ? "1px solid var(--border-1)" : "none",
+            fontSize: 14.5,
+            letterSpacing: "-0.01em",
+            color: "var(--fg-1)",
+            fontFamily: "var(--font-ui)",
+            cursor: "pointer",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <span style={{ color: "var(--fg-3)", display: "flex", flexShrink: 0 }}>
+            {cloneElement(it.icon, { size: 18, sw: 1.6 } as never)}
+          </span>
+          <span style={{ flex: 1 }}>{it.label}</span>
+          {it.value && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>{it.value}</span>
+          )}
+          {/* всё в разработке — единый бейдж вместо тоглов/чевронов */}
+          <span
             style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "13px 16px",
-              background: "transparent",
-              border: "none",
-              textAlign: "left",
-              borderBottom: i < rows.length - 1 ? "1px solid var(--border-1)" : "none",
-              fontSize: 14.5,
-              letterSpacing: "-0.01em",
-              color: "var(--fg-1)",
               fontFamily: "var(--font-ui)",
-              cursor: interactive ? "pointer" : "default",
-              WebkitTapHighlightColor: "transparent",
+              fontSize: 11,
+              fontWeight: 500,
+              color: "var(--fg-4)",
+              background: "var(--fill-2, rgba(60,40,25,0.05))",
+              padding: "2px 8px",
+              borderRadius: 999,
+              flexShrink: 0,
+              letterSpacing: "-0.005em",
             }}
           >
-            <span style={{ color: "var(--fg-3)", display: "flex", flexShrink: 0 }}>
-              {cloneElement(it.icon, { size: 18, sw: 1.6 } as never)}
-            </span>
-            <span style={{ flex: 1 }}>{it.label}</span>
-            {it.value && (
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>{it.value}</span>
-            )}
-            {it.toggle != null && <Toggle on={it.toggle} />}
-            {it.chevron && (
-              <span style={{ color: "var(--fg-4)", display: "flex" }}>{cloneElement(Icons.arrow, { size: 14, sw: 1.6 } as never)}</span>
-            )}
-          </button>
-        );
-      })}
+            скоро
+          </span>
+        </button>
+      ))}
     </div>
   );
 }
 
 export function MeScreen({ onComingSoon }: { onComingSoon: () => void }) {
   const [me, setMe] = useState<UserInfo | null>(null);
-  // Локальные тогглы (персистентного бэкенда настроек пока нет).
-  const [quietMode, setQuietMode] = useState(false);
-  const [aiSuggest, setAiSuggest] = useState(true);
-  const [autoTags, setAutoTags] = useState(true);
-  const [denseList, setDenseList] = useState(false);
 
   useEffect(() => {
     let alive = true;
@@ -215,27 +184,27 @@ export function MeScreen({ onComingSoon }: { onComingSoon: () => void }) {
       <SettingsTitle>Приватность</SettingsTitle>
       <SettingsCard
         rows={[
-          { icon: Icons.brain, label: "Тихий режим", toggle: quietMode, onToggle: () => setQuietMode((v) => !v) },
-          { icon: Icons.brain, label: "AI-подсказки", toggle: aiSuggest, onToggle: () => setAiSuggest((v) => !v) },
-          { icon: Icons.brain, label: "Таймзона", value: "GMT+3", chevron: true, onClick: onComingSoon },
+          { icon: Icons.brain, label: "Тихий режим", onClick: onComingSoon },
+          { icon: Icons.brain, label: "AI-подсказки", onClick: onComingSoon },
+          { icon: Icons.brain, label: "Таймзона", onClick: onComingSoon },
         ]}
       />
 
       <SettingsTitle>Вид</SettingsTitle>
       <SettingsCard
         rows={[
-          { icon: Icons.feed, label: "Тема", value: "Echo · light", chevron: true, onClick: onComingSoon },
-          { icon: Icons.archive, label: "Архивировать через", value: "90 дней", chevron: true, onClick: onComingSoon },
-          { icon: Icons.cards, label: "Плотный список", toggle: denseList, onToggle: () => setDenseList((v) => !v) },
+          { icon: Icons.feed, label: "Тема", onClick: onComingSoon },
+          { icon: Icons.archive, label: "Архивировать через", onClick: onComingSoon },
+          { icon: Icons.cards, label: "Плотный список", onClick: onComingSoon },
         ]}
       />
 
       <SettingsTitle>Данные</SettingsTitle>
       <SettingsCard
         rows={[
-          { icon: Icons.link, label: "Экспорт в markdown", chevron: true, onClick: onComingSoon },
-          { icon: Icons.link, label: "Подключить Notion", chevron: true, onClick: onComingSoon },
-          { icon: Icons.tag, label: "Авто-теги", toggle: autoTags, onToggle: () => setAutoTags((v) => !v) },
+          { icon: Icons.link, label: "Экспорт в markdown", onClick: onComingSoon },
+          { icon: Icons.link, label: "Подключить Notion", onClick: onComingSoon },
+          { icon: Icons.tag, label: "Авто-теги", onClick: onComingSoon },
         ]}
       />
 
