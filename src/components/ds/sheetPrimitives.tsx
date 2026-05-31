@@ -9,11 +9,14 @@ export function BottomSheet({
   onDismiss,
   paddingBottom = 24,
   height = "auto",
+  minHeight,
 }: {
   children: ReactNode;
   onDismiss?: () => void;
   paddingBottom?: number;
   height?: string;
+  /** Минимальная высота контента шторки (чтобы короткие списки не были тесными). */
+  minHeight?: number;
 }) {
   // Залочить скролл фона пока шторка открыта (иначе подложка скроллится под ней).
   useEffect(() => {
@@ -61,6 +64,7 @@ export function BottomSheet({
             borderTopRightRadius: 28,
             borderTop: "1px solid rgba(255,255,255,0.7)",
             padding: `6px 0 ${paddingBottom}px`,
+            ...(minHeight ? { minHeight } : {}),
             boxShadow: "0 -8px 30px rgba(60,40,25,0.12), 0 1px 0 rgba(255,255,255,0.6) inset",
           }}
         >
@@ -93,11 +97,11 @@ export function SheetTitle({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        padding: onBack ? "4px 16px 14px 12px" : "4px 16px 14px 20px",
+        padding: onBack ? "8px 16px 16px 12px" : "8px 16px 16px 20px",
         gap: 10,
       }}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0, flex: 1 }}>
         {onBack && <SheetBackBtn onClick={onBack} />}
         <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--fg-1)", margin: 0, minWidth: 0 }}>
           {title}

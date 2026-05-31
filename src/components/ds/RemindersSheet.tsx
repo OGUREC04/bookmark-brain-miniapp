@@ -28,7 +28,7 @@ export function RemindersSheet({
 }) {
   const total = groups.reduce((s, g) => s + g.rows.length, 0);
   return (
-    <BottomSheet onDismiss={onDismiss}>
+    <BottomSheet onDismiss={onDismiss} minHeight={340} paddingBottom={34}>
       <SheetTitle
         title={
           <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
