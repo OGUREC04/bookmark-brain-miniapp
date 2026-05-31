@@ -34,7 +34,7 @@ type Sheet =
   | { type: "action"; target: SheetTarget; bookmark: Bookmark }
   | { type: "reminders" }
   | { type: "reminderPicker"; bookmark: Bookmark }
-  | { type: "reminderReschedule"; reminderId: string; contextText: string }
+  | { type: "reminderReschedule"; reminderId: string; contextText: string; initialISO?: string | null }
   | { type: "moveToSpace"; bookmark: Bookmark }
   | { type: "quickCreate" }
   | null;
@@ -278,7 +278,7 @@ export function App() {
               (typeof r?.payload?.text === "string" && r.payload.text.trim()) ||
               r?.bookmark_title ||
               "напоминание";
-            setSheet({ type: "reminderReschedule", reminderId: id, contextText: ctx });
+            setSheet({ type: "reminderReschedule", reminderId: id, contextText: ctx, initialISO: r?.fire_at ?? null });
           }}
         />
       )}
@@ -286,9 +286,11 @@ export function App() {
       {sheet?.type === "reminderReschedule" && (
         <ReminderPickerSheet
           contextText={sheet.contextText}
+          initialISO={sheet.initialISO}
           onDismiss={() => setSheet({ type: "reminders" })}
           onConfirm={(iso) =>
             runAction(async () => {
+              // snooze патчит только fire_at; правка текста на переносе не персистится (бэк-лимит)
               await api.reminders.snooze(sheet.reminderId, iso);
               setSheet({ type: "reminders" });
               reload();
@@ -301,9 +303,9 @@ export function App() {
         <ReminderPickerSheet
           contextText={sheet.bookmark.title || (sheet.bookmark.raw_text ?? "").slice(0, 60) || "без названия"}
           onDismiss={closeSheet}
-          onConfirm={(iso) =>
+          onConfirm={(iso, text) =>
             runAction(async () => {
-              await api.reminders.create(sheet.bookmark.id, iso);
+              await api.reminders.create(sheet.bookmark.id, iso, { text });
               closeSheet();
             })
           }

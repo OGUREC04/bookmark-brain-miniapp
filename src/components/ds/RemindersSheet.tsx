@@ -26,7 +26,27 @@ export function RemindersSheet({
   const total = groups.reduce((s, g) => s + g.rows.length, 0);
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="напоминания" right={total > 0 ? String(total) : undefined} onClose={onDismiss} />
+      <SheetTitle
+        title={
+          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
+            <span>напоминания</span>
+            {total > 0 && (
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "var(--brand-primary-press)",
+                  letterSpacing: ".02em",
+                }}
+              >
+                {total}
+              </span>
+            )}
+          </span>
+        }
+        onClose={onDismiss}
+      />
       {groups.length === 0 && (
         <div
           style={{
@@ -127,27 +147,28 @@ function ReminderRow({
           {preview}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 4 }}>
+      <div style={{ display: "flex", gap: 6 }}>
         <button
           aria-label="отложить"
           onClick={onSnooze}
           onMouseEnter={() => setHSnooze(true)}
           onMouseLeave={() => setHSnooze(false)}
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 10,
+            width: 42,
+            height: 42,
+            borderRadius: 12,
             background: hSnooze ? "var(--brand-primary-tint)" : "rgba(255,252,246,0.7)",
             border: "1px solid rgba(255,255,255,0.6)",
-            color: hSnooze ? "var(--brand-primary-press)" : "var(--fg-3)",
+            color: hSnooze ? "var(--brand-primary-press)" : "var(--fg-2)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
             transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
           }}
         >
-          {cloneElement(ExtraIcons.clock, { size: 14, sw: 1.6 } as never)}
+          {cloneElement(ExtraIcons.clock, { size: 19, sw: 1.7 } as never)}
         </button>
         <button
           aria-label="отменить"
@@ -155,20 +176,21 @@ function ReminderRow({
           onMouseEnter={() => setHCancel(true)}
           onMouseLeave={() => setHCancel(false)}
           style={{
-            width: 32,
-            height: 32,
-            borderRadius: 10,
+            width: 42,
+            height: 42,
+            borderRadius: 12,
             background: hCancel ? "var(--bg-sunken)" : "transparent",
-            border: "1px solid transparent",
-            color: hCancel ? "var(--fg-2)" : "var(--fg-4)",
+            border: "1px solid var(--border-1)",
+            color: hCancel ? "var(--fg-2)" : "var(--fg-3)",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
+            flexShrink: 0,
             transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
           }}
         >
-          {cloneElement(Icons.close, { size: 13, sw: 1.6 } as never)}
+          {cloneElement(Icons.close, { size: 18, sw: 1.7 } as never)}
         </button>
       </div>
     </div>
