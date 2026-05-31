@@ -25,9 +25,12 @@ function mondayIndex(jsDay: number): number {
 export function Calendar({
   value,
   onSelect,
+  compact = false,
 }: {
   value: string | null;
   onSelect: (iso: string) => void;
+  /** Компактный режим — меньше ячейки/отступы (чтобы под календарём влез time-wheel). */
+  compact?: boolean;
 }) {
   const today = new Date();
   const initial = value ? new Date(value) : today;
@@ -51,7 +54,7 @@ export function Calendar({
   return (
     <div>
       {/* Шапка: месяц + навигация */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: compact ? 6 : 12 }}>
         <span style={{ fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 600, color: "var(--fg-1)", letterSpacing: "-0.01em" }}>
           {MONTHS[view.m]} {view.y}
         </span>
@@ -105,7 +108,7 @@ export function Calendar({
               aria-pressed={selected}
               aria-disabled={isPast}
               style={{
-                aspectRatio: "1 / 1",
+                ...(compact ? { height: 30 } : { aspectRatio: "1 / 1" }),
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",

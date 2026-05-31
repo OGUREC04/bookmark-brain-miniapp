@@ -1,8 +1,10 @@
 /* RemindersSheet — grouped reminders list. Ported 1:1; styles verbatim. */
-import { useState, cloneElement } from "react";
-import { Icons } from "./icons";
 import { Avatar } from "./ChatRow";
-import { BottomSheet, SheetTitle } from "./sheetPrimitives";
+import { BottomSheet, SheetTitle, SheetCloseBtn } from "./sheetPrimitives";
+
+function cap(s: string): string {
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+}
 
 export interface ReminderRowData {
   id: string;
@@ -28,16 +30,24 @@ export function RemindersSheet({
     <BottomSheet onDismiss={onDismiss}>
       <SheetTitle
         title={
-          <span style={{ display: "inline-flex", alignItems: "baseline", gap: 8 }}>
-            <span>напоминания</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span>Напоминания</span>
             {total > 0 && (
               <span
                 style={{
+                  minWidth: 20,
+                  height: 20,
+                  padding: "0 6px",
+                  borderRadius: 999,
+                  background: "var(--brand-primary)",
+                  color: "var(--fg-on-brand)",
                   fontFamily: "var(--font-mono)",
-                  fontSize: 13,
+                  fontSize: 11,
                   fontWeight: 600,
-                  color: "var(--brand-primary-press)",
-                  letterSpacing: ".02em",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  letterSpacing: 0,
                 }}
               >
                 {total}
@@ -58,23 +68,22 @@ export function RemindersSheet({
             color: "var(--fg-3)",
           }}
         >
-          напоминаний пока нет
+          Напоминаний пока нет
         </div>
       )}
       {groups.map((g) => (
         <div key={g.label} style={{ marginBottom: 10 }}>
           <div
             style={{
-              padding: "0 20px 4px",
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              letterSpacing: ".12em",
-              textTransform: "uppercase",
+              padding: "0 20px 6px",
+              fontFamily: "var(--font-ui)",
+              fontSize: 12.5,
+              letterSpacing: "-0.005em",
               color: "var(--brand-primary-press)",
-              fontWeight: 500,
+              fontWeight: 600,
             }}
           >
-            {g.label}
+            {cap(g.label)}
           </div>
           <div>
             {g.rows.map((r, i) => (
@@ -97,12 +106,10 @@ function ReminderRow({
   avatar,
   name,
   time,
-  preview,
   isLast,
   onSnooze,
   onCancel,
 }: ReminderRowData & { isLast?: boolean; onSnooze?: () => void; onCancel?: () => void }) {
-  const [hCancel, setHCancel] = useState(false);
   return (
     <div
       onClick={onSnooze}
@@ -121,73 +128,38 @@ function ReminderRow({
       )}
       <Avatar {...avatar} size={38} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-          <span
-            style={{
-              fontSize: 14,
-              fontWeight: 500,
-              color: "var(--fg-1)",
-              letterSpacing: "-0.01em",
-              flex: 1,
-              minWidth: 0,
-              // полный текст в 2 строки, дальше — многоточие
-              display: "-webkit-box",
-              WebkitLineClamp: 2,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-              lineHeight: 1.3,
-            }}
-          >
-            {name}
-          </span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: ".04em", fontWeight: 500, flexShrink: 0 }}>
-            {time}
-          </span>
+        {/* время — НАД текстом, акцентом */}
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: ".04em", fontWeight: 600, marginBottom: 2 }}>
+          {time}
         </div>
-        <div
+        <span
           style={{
-            fontFamily: "var(--font-display)",
-            fontStyle: "italic",
-            fontSize: 13,
-            color: "var(--fg-2)",
-            lineHeight: 1.35,
-            marginTop: 1,
-            whiteSpace: "nowrap",
+            fontSize: 14,
+            fontWeight: 500,
+            color: "var(--fg-1)",
+            letterSpacing: "-0.01em",
+            // полный текст в 2 строки, дальше — многоточие
+            display: "-webkit-box",
+            WebkitLineClamp: 2,
+            WebkitBoxOrient: "vertical",
             overflow: "hidden",
-            textOverflow: "ellipsis",
+            lineHeight: 1.3,
           }}
         >
-          {preview}
-        </div>
+          {name}
+        </span>
       </div>
-      {/* Вся карточка = перенос (onSnooze). Здесь только «отменить»; tap по карточке
-          не должен его триггерить — stopPropagation. */}
-      <button
-        aria-label="отменить"
+      {/* Вся карточка = перенос (onSnooze). Здесь только «отменить» (× как в шапке);
+          tap по карточке не должен его триггерить — stopPropagation. */}
+      <span
         onClick={(e) => {
           e.stopPropagation();
           onCancel?.();
         }}
-        onMouseEnter={() => setHCancel(true)}
-        onMouseLeave={() => setHCancel(false)}
-        style={{
-          width: 42,
-          height: 42,
-          borderRadius: 12,
-          background: hCancel ? "var(--bg-sunken)" : "transparent",
-          border: "1px solid var(--border-1)",
-          color: hCancel ? "var(--fg-2)" : "var(--fg-3)",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          flexShrink: 0,
-          marginTop: 1,
-          transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
-        }}
+        style={{ flexShrink: 0, display: "flex" }}
       >
-        {cloneElement(Icons.close, { size: 18, sw: 1.7 } as never)}
-      </button>
+        <SheetCloseBtn onClick={() => onCancel?.()} />
+      </span>
     </div>
   );
 }

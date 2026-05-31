@@ -3,8 +3,6 @@
 import { useRef, useState, useLayoutEffect, useCallback } from "react";
 
 const ITEM = 34; // высота строки
-const VISIBLE = 5; // нечётное — центр выделен
-const PAD = ((VISIBLE - 1) / 2) * ITEM;
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
@@ -15,12 +13,15 @@ function WheelColumn({
   index,
   onIndex,
   align,
+  visible,
 }: {
   values: string[];
   index: number;
   onIndex: (i: number) => void;
   align: "right" | "left";
+  visible: number;
 }) {
+  const PAD = ((visible - 1) / 2) * ITEM;
   const ref = useRef<HTMLDivElement>(null);
   const settleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -48,7 +49,7 @@ function WheelColumn({
       ref={ref}
       onScroll={onScroll}
       style={{
-        height: VISIBLE * ITEM,
+        height: visible * ITEM,
         overflowY: "auto",
         scrollSnapType: "y mandatory",
         scrollbarWidth: "none",
@@ -93,13 +94,18 @@ export function TimeWheel({
   hour,
   minute,
   onChange,
+  compact = false,
 }: {
   hour: number;
   minute: number;
   onChange: (h: number, m: number) => void;
+  /** compact — 3 видимых строки вместо 5 (чтобы барабан влез под календарём). */
+  compact?: boolean;
 }) {
   const [hours] = useState(() => Array.from({ length: 24 }, (_, i) => pad2(i)));
   const [minutes] = useState(() => Array.from({ length: 60 }, (_, i) => pad2(i)));
+  const VISIBLE = compact ? 3 : 5; // нечётное — центр выделен
+  const PAD = ((VISIBLE - 1) / 2) * ITEM;
 
   return (
     <div style={{ position: "relative", display: "flex", alignItems: "stretch", padding: "0 24px" }}>
@@ -116,7 +122,7 @@ export function TimeWheel({
           pointerEvents: "none",
         }}
       />
-      <WheelColumn values={hours} index={hour} onIndex={(i) => onChange(i, minute)} align="right" />
+      <WheelColumn values={hours} index={hour} onIndex={(i) => onChange(i, minute)} align="right" visible={VISIBLE} />
       <div
         style={{
           display: "flex",
@@ -133,7 +139,7 @@ export function TimeWheel({
       >
         :
       </div>
-      <WheelColumn values={minutes} index={minute} onIndex={(i) => onChange(hour, i)} align="left" />
+      <WheelColumn values={minutes} index={minute} onIndex={(i) => onChange(hour, i)} align="left" visible={VISIBLE} />
     </div>
   );
 }
