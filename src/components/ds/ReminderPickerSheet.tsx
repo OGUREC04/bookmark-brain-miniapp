@@ -186,9 +186,8 @@ export function ReminderPickerSheet({
         onClose={isCustom ? undefined : onDismiss}
       />
 
-      {/* текст — закреплён (не скроллится), чтобы всегда был виден */}
-        {/* редактируемый текст — как пункт списка (textarea, brand-caret, ×-очистка) */}
-        <div
+      {/* текст — закреплён (не скроллится), как пункт списка (textarea, brand-caret, ×-очистка) */}
+      <div
           style={{
             margin: "0 16px 18px",
             padding: "14px 16px",

@@ -1,7 +1,7 @@
 /* Bottom Sheets — ported 1:1 from docs/design-system-miniapp/app/Sheets.jsx.
    Visual inline styles verbatim; data wired via props.
    Shared primitives used across all sheets. */
-import { useState, useEffect, cloneElement, type ReactNode } from "react";
+import { useEffect, cloneElement, type ReactNode } from "react";
 import { Icons } from "./icons";
 
 export function BottomSheet({
