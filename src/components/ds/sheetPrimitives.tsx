@@ -131,33 +131,54 @@ export function TelegramMainButton({
   label,
   enabled,
   onClick,
+  disabledHint,
 }: {
   label: string;
   enabled: boolean;
   onClick?: () => void;
+  /** Подсказка почему кнопка недоступна — нативный tooltip + текст под кнопкой. */
+  disabledHint?: string;
 }) {
   return (
-    <button
-      disabled={!enabled}
-      onClick={onClick}
-      style={{
-        width: "100%",
-        padding: "14px 18px",
-        borderRadius: 14,
-        background: enabled ? "var(--brand-primary)" : "rgba(122,156,122,0.35)",
-        color: "var(--fg-on-brand)",
-        border: "none",
-        fontFamily: "var(--font-ui)",
-        fontSize: 15,
-        fontWeight: 500,
-        letterSpacing: "-0.005em",
-        cursor: enabled ? "pointer" : "not-allowed",
-        boxShadow: enabled
-          ? "0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 12px rgba(122,156,122,0.25)"
-          : "none",
-      }}
-    >
-      {label}
-    </button>
+    <div>
+      <button
+        disabled={!enabled}
+        onClick={onClick}
+        title={!enabled ? disabledHint : undefined}
+        style={{
+          width: "100%",
+          padding: "14px 18px",
+          borderRadius: 14,
+          background: enabled ? "var(--brand-primary)" : "rgba(122,156,122,0.35)",
+          color: "var(--fg-on-brand)",
+          border: "none",
+          fontFamily: "var(--font-ui)",
+          fontSize: 15,
+          fontWeight: 500,
+          letterSpacing: "-0.005em",
+          cursor: enabled ? "pointer" : "not-allowed",
+          boxShadow: enabled
+            ? "0 1px 0 rgba(255,255,255,0.2) inset, 0 4px 12px rgba(122,156,122,0.25)"
+            : "none",
+        }}
+      >
+        {label}
+      </button>
+      {!enabled && disabledHint && (
+        <div
+          style={{
+            marginTop: 8,
+            textAlign: "center",
+            fontFamily: "var(--font-display)",
+            fontStyle: "italic",
+            fontSize: 12.5,
+            color: "var(--fg-3)",
+            letterSpacing: 0,
+          }}
+        >
+          {disabledHint}
+        </div>
+      )}
+    </div>
   );
 }

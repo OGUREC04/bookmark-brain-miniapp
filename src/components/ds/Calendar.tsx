@@ -56,7 +56,12 @@ export function Calendar({
           {MONTHS[view.m]} {view.y}
         </span>
         <div style={{ display: "flex", gap: 4 }}>
-          <NavBtn label="предыдущий месяц" onClick={() => shiftMonth(-1)} flip />
+          <NavBtn
+            label="предыдущий месяц"
+            onClick={() => shiftMonth(-1)}
+            flip
+            disabled={view.y < today.getFullYear() || (view.y === today.getFullYear() && view.m <= today.getMonth())}
+          />
           <NavBtn label="следующий месяц" onClick={() => shiftMonth(1)} />
         </div>
       </div>
@@ -89,13 +94,16 @@ export function Calendar({
           const iso = toISO(view.y, view.m, d);
           const selected = iso === value;
           const isToday = iso === todayISO;
+          const isPast = iso < todayISO; // прошлые даты выбрать нельзя
           return (
             <button
               key={iso}
               type="button"
-              onClick={() => onSelect(iso)}
+              disabled={isPast}
+              onClick={() => !isPast && onSelect(iso)}
               aria-label={iso}
               aria-pressed={selected}
+              aria-disabled={isPast}
               style={{
                 aspectRatio: "1 / 1",
                 display: "flex",
@@ -104,11 +112,13 @@ export function Calendar({
                 fontFamily: "var(--font-ui)",
                 fontSize: 13.5,
                 fontWeight: selected ? 600 : 500,
-                color: selected ? "var(--fg-on-brand)" : "var(--fg-1)",
+                color: selected ? "var(--fg-on-brand)" : isPast ? "var(--fg-4)" : "var(--fg-1)",
+                opacity: isPast ? 0.4 : 1,
                 background: selected ? "var(--brand-primary)" : "transparent",
                 border: isToday && !selected ? "1.5px solid var(--brand-primary)" : "1.5px solid transparent",
                 borderRadius: 10,
-                cursor: "pointer",
+                cursor: isPast ? "default" : "pointer",
+                textDecoration: isPast ? "line-through" : "none",
                 WebkitTapHighlightColor: "transparent",
                 transition: "background 120ms var(--ease-out)",
               }}
@@ -122,12 +132,13 @@ export function Calendar({
   );
 }
 
-function NavBtn({ label, onClick, flip }: { label: string; onClick: () => void; flip?: boolean }) {
+function NavBtn({ label, onClick, flip, disabled }: { label: string; onClick: () => void; flip?: boolean; disabled?: boolean }) {
   return (
     <button
       type="button"
       aria-label={label}
-      onClick={onClick}
+      disabled={disabled}
+      onClick={() => !disabled && onClick()}
       style={{
         width: 30,
         height: 30,
@@ -138,7 +149,8 @@ function NavBtn({ label, onClick, flip }: { label: string; onClick: () => void; 
         border: "none",
         borderRadius: 9,
         color: "var(--fg-2)",
-        cursor: "pointer",
+        opacity: disabled ? 0.35 : 1,
+        cursor: disabled ? "default" : "pointer",
         transform: flip ? "scaleX(-1)" : undefined,
         WebkitTapHighlightColor: "transparent",
       }}
