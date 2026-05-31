@@ -23,9 +23,10 @@ function BellPillCompact({ count = 0, onClick }: { count?: number; onClick?: () 
         position: "relative",
         background: has ? "var(--brand-primary-tint)" : "var(--surface-glass)",
         border: has ? "1px solid rgba(122,156,122,0.35)" : "1px solid var(--border-1)",
-        width: 46,
-        height: 46,
-        borderRadius: "50%",
+        // квадрат той же высоты, что строка поиска (56)
+        width: 56,
+        height: 56,
+        borderRadius: "var(--radius-chip)",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
@@ -295,7 +296,7 @@ export function MysliScreen({
           WebkitBackdropFilter: "var(--blur-nav)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
+        <div style={{ display: "flex", alignItems: "stretch", gap: 8, padding: "0 16px" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SearchBar onFocus={onSearch} />
           </div>

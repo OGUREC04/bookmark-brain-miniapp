@@ -15,7 +15,9 @@
   font-family: var(--font-ui);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
-  overflow-x: hidden;
+  /* clip (НЕ hidden): клипает горизонтальный оверфлоу, но не создаёт
+     скролл-контейнер — иначе ломается position:sticky у шапки ленты. */
+  overflow-x: clip;
   /* Reserve space for floating bottom nav (~76px + safe-area). */
   padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px));
 }
@@ -181,7 +183,10 @@
   to   { transform: translateY(0); }
 }
 .screen-fade {
-  animation: screenIn 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)) both;
+  /* НЕ 'both'/'forwards': иначе после анимации остаётся transform: translateY(0),
+     а любой transform на родителе ломает position:sticky у шапки ленты.
+     Без fill-mode элемент возвращается к своему стилю (transform:none) → sticky жив. */
+  animation: screenIn 200ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1));
 }
 /* Toast fade — opacity only (NO transform; toast uses translateX(-50%) to
    center, a transform-based keyframe would clobber it and shift it off-center). */

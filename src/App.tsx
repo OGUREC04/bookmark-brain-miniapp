@@ -178,7 +178,8 @@ export function App() {
       style={{
         position: "relative",
         minHeight: "100vh",
-        overflowX: "hidden",
+        // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
+        overflowX: "clip",
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
         background: detail ? "var(--backdrop-gradient, var(--bg-page))" : "var(--bg-page)",
       }}
