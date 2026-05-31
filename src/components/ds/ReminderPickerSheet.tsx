@@ -102,6 +102,8 @@ export function ReminderPickerSheet({
   const [hour, setHour] = useState(init ? init.getHours() : Math.min(23, new Date().getHours() + 1));
   const [minute, setMinute] = useState(init ? init.getMinutes() : 0);
   const [text, setText] = useState(contextText);
+  // Барабан времени открывается поповером по тапу на строку (iOS-стиль), не стопкой под календарём.
+  const [timeOpen, setTimeOpen] = useState(false);
 
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const autoGrow = useCallback(() => {
@@ -329,9 +331,45 @@ export function ReminderPickerSheet({
         {isCustom && (
           <div style={{ padding: "0 16px" }}>
             <Calendar value={date} onSelect={setDate} compact />
-            <div style={{ marginTop: 6, borderTop: "1px solid var(--border-1)", paddingTop: 2 }}>
-              <TimeWheel hour={hour} minute={minute} compact onChange={(h, m) => { setHour(h); setMinute(m); }} />
-            </div>
+            {/* строка времени — тап открывает барабан в поповере (iOS-стиль), не стопкой */}
+            <button
+              type="button"
+              onClick={() => setTimeOpen(true)}
+              style={{
+                width: "100%",
+                marginTop: 10,
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "14px 16px",
+                background: "rgba(255,252,246,0.7)",
+                border: "1px solid var(--border-1)",
+                borderRadius: 14,
+                cursor: "pointer",
+                color: "var(--fg-1)",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {cloneElement(ExtraIcons.clock, { size: 18, sw: 1.7 } as never)}
+              <span style={{ flex: 1, textAlign: "left", fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 500, letterSpacing: "-0.01em" }}>
+                Время
+              </span>
+              <span
+                style={{
+                  padding: "4px 12px",
+                  borderRadius: 999,
+                  background: "var(--brand-primary-tint)",
+                  border: "1px solid rgba(122,156,122,0.35)",
+                  color: "var(--brand-primary-press)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: ".04em",
+                }}
+              >
+                {hour}:{pad2(minute)}
+              </span>
+            </button>
           </div>
         )}
       </div>
@@ -346,6 +384,77 @@ export function ReminderPickerSheet({
           }
         />
       </div>
+
+      {/* поповер барабана времени — поверх шторки; тап-вне или «Готово» закрывает */}
+      {timeOpen && (
+        <div
+          onClick={() => setTimeOpen(false)}
+          onTouchMove={(e) => e.preventDefault()}
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 110,
+            background: "rgba(28,22,18,0.22)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: 24,
+            touchAction: "none",
+          }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="выбор времени"
+            style={{
+              width: "min(320px, 86vw)",
+              background: "rgba(255,252,246,0.98)",
+              backdropFilter: "blur(20px) saturate(160%)",
+              WebkitBackdropFilter: "blur(20px) saturate(160%)",
+              borderRadius: 22,
+              border: "1px solid rgba(255,255,255,0.7)",
+              boxShadow: "0 12px 40px rgba(60,40,25,0.22)",
+              padding: "14px 14px 12px",
+            }}
+          >
+            <div
+              style={{
+                textAlign: "center",
+                fontFamily: "var(--font-ui)",
+                fontSize: 14,
+                fontWeight: 600,
+                letterSpacing: "-0.01em",
+                color: "var(--fg-2)",
+                marginBottom: 6,
+              }}
+            >
+              Время
+            </div>
+            <TimeWheel hour={hour} minute={minute} onChange={(h, m) => { setHour(h); setMinute(m); }} />
+            <button
+              type="button"
+              onClick={() => setTimeOpen(false)}
+              style={{
+                width: "100%",
+                marginTop: 12,
+                padding: "12px",
+                borderRadius: 12,
+                background: "var(--brand-primary)",
+                color: "var(--fg-on-brand)",
+                border: "none",
+                fontFamily: "var(--font-ui)",
+                fontSize: 15,
+                fontWeight: 500,
+                letterSpacing: "-0.005em",
+                cursor: "pointer",
+              }}
+            >
+              Готово
+            </button>
+          </div>
+        </div>
+      )}
     </BottomSheet>
   );
 }
