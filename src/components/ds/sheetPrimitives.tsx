@@ -99,7 +99,7 @@ export function SheetTitle({
     >
       <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
         {onBack && <SheetBackBtn onClick={onBack} />}
-        <h3 style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.025em", color: "var(--fg-1)", margin: 0, minWidth: 0 }}>
+        <h3 style={{ fontSize: 18, fontWeight: 600, letterSpacing: "-0.02em", color: "var(--fg-1)", margin: 0, minWidth: 0 }}>
           {title}
         </h3>
       </div>
