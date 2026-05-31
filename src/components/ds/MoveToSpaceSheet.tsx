@@ -14,18 +14,21 @@ export interface SpaceOption {
 export function MoveToSpaceSheet({
   spaces,
   onDismiss,
+  onBack,
   onPick,
   onCreate,
 }: {
   spaces: SpaceOption[];
   onDismiss?: () => void;
+  /** Шаг назад к меню действий (‹). */
+  onBack?: () => void;
   onPick?: (id: string) => void;
   onCreate?: () => void;
 }) {
   const [picked, setPicked] = useState<string>("");
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="в пространство" />
+      <SheetTitle title="в пространство" onBack={onBack} onClose={onDismiss} />
       <div style={{ padding: "0 12px" }}>
         {spaces.slice(0, 6).map((s) => {
           const on = picked === s.id;

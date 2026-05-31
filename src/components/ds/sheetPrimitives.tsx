@@ -78,15 +78,32 @@ export function SheetTitle({
   title,
   right,
   onClose,
+  onBack,
 }: {
   title: ReactNode;
   right?: ReactNode;
+  /** Закрыть шторку целиком (×, справа). */
   onClose?: () => void;
+  /** Шаг назад в флоу (‹ шеврон, слева). */
+  onBack?: () => void;
 }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "4px 16px 14px 20px", gap: 12 }}>
-      <h3 style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.025em", color: "var(--fg-1)", margin: 0 }}>{title}</h3>
-      <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+    <div
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: onBack ? "4px 16px 14px 12px" : "4px 16px 14px 20px",
+        gap: 10,
+      }}
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0, flex: 1 }}>
+        {onBack && <SheetBackBtn onClick={onBack} />}
+        <h3 style={{ fontSize: 20, fontWeight: 500, letterSpacing: "-0.025em", color: "var(--fg-1)", margin: 0, minWidth: 0 }}>
+          {title}
+        </h3>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         {right && (
           <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".06em", fontWeight: 500 }}>
             {right}
@@ -95,6 +112,36 @@ export function SheetTitle({
         {onClose && <SheetCloseBtn onClick={onClose} />}
       </div>
     </div>
+  );
+}
+
+export function SheetBackBtn({ onClick }: { onClick: () => void }) {
+  const [h, setH] = useState(false);
+  return (
+    <button
+      type="button"
+      aria-label="назад"
+      onClick={onClick}
+      onMouseEnter={() => setH(true)}
+      onMouseLeave={() => setH(false)}
+      style={{
+        width: 32,
+        height: 32,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: h ? "var(--bg-sunken)" : "transparent",
+        border: "none",
+        borderRadius: 999,
+        color: h ? "var(--fg-1)" : "var(--fg-2)",
+        cursor: "pointer",
+        transition: "color 140ms var(--ease-out), background 140ms var(--ease-out)",
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      {cloneElement(Icons.chevronLeft, { size: 20, sw: 2 } as never)}
+    </button>
   );
 }
 

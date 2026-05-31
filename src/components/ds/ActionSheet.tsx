@@ -2,7 +2,7 @@
 import { cloneElement } from "react";
 import { ExtraIcons } from "./icons";
 import { Glyph } from "./atoms";
-import { BottomSheet } from "./sheetPrimitives";
+import { BottomSheet, SheetCloseBtn } from "./sheetPrimitives";
 
 export interface SheetTarget {
   id: string;
@@ -81,6 +81,7 @@ export function ActionSheet({
             {target.src}
           </div>
         </div>
+        {onDismiss && <SheetCloseBtn onClick={onDismiss} />}
       </div>
 
       <div style={{ padding: "4px 6px 4px" }}>

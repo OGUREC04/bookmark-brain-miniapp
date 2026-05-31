@@ -287,7 +287,8 @@ export function App() {
         <ReminderPickerSheet
           contextText={sheet.contextText}
           initialISO={sheet.initialISO}
-          onDismiss={() => setSheet({ type: "reminders" })}
+          onDismiss={closeSheet}
+          onBack={() => setSheet({ type: "reminders" })}
           onConfirm={(iso) =>
             runAction(async () => {
               // snooze патчит только fire_at; правка текста на переносе не персистится (бэк-лимит)
@@ -303,6 +304,7 @@ export function App() {
         <ReminderPickerSheet
           contextText={sheet.bookmark.title || (sheet.bookmark.raw_text ?? "").slice(0, 60) || "без названия"}
           onDismiss={closeSheet}
+          onBack={() => setSheet({ type: "action", target: targetOf(sheet.bookmark), bookmark: sheet.bookmark })}
           onConfirm={(iso, text) =>
             runAction(async () => {
               await api.reminders.create(sheet.bookmark.id, iso, { text });
@@ -316,6 +318,7 @@ export function App() {
         <MoveToSpaceSheet
           spaces={folders.map<SpaceOption>((f) => ({ id: f.id, name: f.name, count: f.bookmarks_count, glyph: f.emoji || "·" }))}
           onDismiss={closeSheet}
+          onBack={() => setSheet({ type: "action", target: targetOf(sheet.bookmark), bookmark: sheet.bookmark })}
           onPick={(folderId) =>
             runAction(async () => {
               await api.addBookmarkToFolder(folderId, sheet.bookmark.id);

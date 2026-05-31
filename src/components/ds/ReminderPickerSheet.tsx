@@ -70,12 +70,16 @@ export function ReminderPickerSheet({
   contextText,
   initialISO,
   onDismiss,
+  onBack,
   onConfirm,
 }: {
   contextText: string;
   /** Существующее время (при переносе/редактировании) — пикер откроется на нём. */
   initialISO?: string | null;
+  /** Закрыть шторку целиком (×, свайп, клик вне). */
   onDismiss?: () => void;
+  /** Шаг назад к предыдущей шторке (‹ в режиме пресетов). */
+  onBack?: () => void;
   onConfirm?: (fireAtISO: string, text: string) => void;
 }) {
   const init = initialISO ? new Date(initialISO) : null;
@@ -114,7 +118,10 @@ export function ReminderPickerSheet({
             )}
           </span>
         }
-        onClose={onDismiss}
+        // custom: ‹ назад к пресетам, без × (закрыть свайпом/вне);
+        // пресеты: ‹ к предыдущей шторке (если есть) + × закрыть.
+        onBack={isCustom ? () => setPicked("tonight") : onBack}
+        onClose={isCustom ? undefined : onDismiss}
       />
 
       {/* редактируемый текст напоминания — НЕ приглушённый, это важная инфа */}
@@ -228,32 +235,9 @@ export function ReminderPickerSheet({
         </>
       )}
 
-      {/* DS-календарь + время с кнопкой «назад». */}
+      {/* DS-календарь + время (кнопка «назад» — в заголовке шторки). */}
       {isCustom && (
         <div style={{ padding: "0 16px" }}>
-          <button
-            onClick={() => setPicked("tonight")}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 6,
-              padding: "8px 12px 8px 8px",
-              marginBottom: 6,
-              background: "var(--bg-sunken, rgba(234,227,207,0.5))",
-              border: "none",
-              borderRadius: 12,
-              cursor: "pointer",
-              color: "var(--fg-2)",
-              fontFamily: "var(--font-ui)",
-              fontSize: 13.5,
-              fontWeight: 500,
-            }}
-          >
-            <span style={{ display: "flex", transform: "scaleX(-1)" }}>
-              {cloneElement(Icons.arrow, { size: 16, sw: 1.8 } as never)}
-            </span>
-            назад
-          </button>
           <Calendar value={date} onSelect={setDate} />
           <div style={{ marginTop: 8, borderTop: "1px solid var(--border-1)", paddingTop: 4 }}>
             <TimeWheel hour={hour} minute={minute} onChange={(h, m) => { setHour(h); setMinute(m); }} />

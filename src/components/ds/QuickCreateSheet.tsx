@@ -26,7 +26,7 @@ export function QuickCreateSheet({
 
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="новая мысль" right="бот разберёт сам" />
+      <SheetTitle title="новая мысль" right="бот разберёт сам" onClose={onDismiss} />
 
       <div style={{ padding: "0 16px" }}>
         <div
