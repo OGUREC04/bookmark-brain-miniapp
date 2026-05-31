@@ -44,8 +44,8 @@ function TabItem({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 3,
-          padding: "8px 0",
+          gap: 2,
+          padding: "6px 0",
           background: "transparent",
           color: active ? "var(--brand-primary)" : "var(--fg-3)",
           transition: "color 220ms var(--ease-out)",
@@ -58,17 +58,17 @@ function TabItem({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            height: 22,
-            width: 22,
+            height: 20,
+            width: 20,
             flexShrink: 0,
           }}
         >
-          {cloneElement(tab.icon, { size: 22, sw: active ? 1.8 : 1.6 } as never)}
+          {cloneElement(tab.icon, { size: 20, sw: active ? 1.8 : 1.6 } as never)}
         </span>
         <span
           style={{
             fontFamily: "var(--font-ui)",
-            fontSize: 11,
+            fontSize: 10,
             fontWeight: active ? 600 : 500,
             letterSpacing: "-0.005em",
             lineHeight: 1.1,
@@ -117,7 +117,7 @@ export function BottomNav({
           backdropFilter: "blur(28px) saturate(180%)",
           WebkitBackdropFilter: "blur(28px) saturate(180%)",
           border: "1px solid rgba(255,255,255,0.7)",
-          borderRadius: 28,
+          borderRadius: 24,
           display: "grid",
           // minmax(0,1fr): строго равные трети, не раздуваются под длинный
           // неразрывный лейбл («пространства») и не прыгают при смене актив-таба.
@@ -137,8 +137,8 @@ export function BottomNav({
         aria-label="создать"
         style={{
           pointerEvents: "auto",
-          width: 56,
-          height: 56,
+          width: 48,
+          height: 48,
           borderRadius: "50%",
           background: "var(--brand-primary)",
           color: "var(--fg-on-brand)",
@@ -162,7 +162,7 @@ export function BottomNav({
           e.currentTarget.style.transform = "translateY(0)";
         }}
       >
-        {cloneElement(Icons.plus, { size: 26, sw: 2 } as never)}
+        {cloneElement(Icons.plus, { size: 22, sw: 2 } as never)}
       </button>
     </div>
   );

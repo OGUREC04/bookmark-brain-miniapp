@@ -280,20 +280,37 @@ export function MysliScreen({
   };
 
   return (
-    <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      {/* row 1 — поиск + колокольчик */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginTop: 2, marginBottom: 10 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <SearchBar onFocus={onSearch} />
+    <div style={{ padding: "0 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+      {/* sticky-шапка: поиск + чипы прилипают к верху при скролле ленты.
+          Лёгкий frosted-фон чтобы строки ленты не просвечивали под ними. */}
+      <div
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 20,
+          paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
+          paddingBottom: 10,
+          background: "var(--surface-glass)",
+          backdropFilter: "var(--blur-nav)",
+          WebkitBackdropFilter: "var(--blur-nav)",
+        }}
+      >
+        {/* row 1 — поиск + колокольчик */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginBottom: 10 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <SearchBar onFocus={onSearch} />
+          </div>
+          <BellPillCompact count={reminderCount} onClick={onBell} />
         </div>
-        <BellPillCompact count={reminderCount} onClick={onBell} />
+
+        {/* row 2 — фильтр-чипы + переключатель вида */}
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
+          <FilterChips active={filter} onChange={setFilter} counts={counts} />
+          <ViewSegment view={view} setView={setView} />
+        </div>
       </div>
 
-      {/* row 2 — фильтр-чипы + переключатель вида */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginBottom: 14 }}>
-        <FilterChips active={filter} onChange={setFilter} counts={counts} />
-        <ViewSegment view={view} setView={setView} />
-      </div>
+      <div style={{ height: 6 }} />
 
       {SHOW_SUGGESTIONS && !hideSuggest && view === "chat" && filter === "all" && !loading && items.length > 0 && (
         <SuggestionPager items={SUGGESTION_DEMO} onDismissAll={() => setHideSuggest(true)} />

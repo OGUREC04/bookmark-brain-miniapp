@@ -41,9 +41,16 @@ export function TaskRow({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(task.text);
-  const [hovered, setHovered] = useState(false);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const inputRef = useRef<HTMLTextAreaElement | null>(null);
   const committedRef = useRef(false);
+
+  // textarea auto-grow: высота по содержимому (длинный текст переносится, а не режется).
+  const autoGrow = useCallback(() => {
+    const el = inputRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   const startEdit = useCallback(() => {
     setDraft(task.text);
@@ -53,10 +60,14 @@ export function TaskRow({
 
   useEffect(() => {
     if (editing && inputRef.current) {
-      inputRef.current.focus();
-      inputRef.current.select();
+      const el = inputRef.current;
+      el.focus();
+      // Курсор в конец, НЕ выделять весь текст (правка, а не замена).
+      const len = el.value.length;
+      el.setSelectionRange(len, len);
+      autoGrow();
     }
-  }, [editing]);
+  }, [editing, autoGrow]);
 
   // Синк draft с внешним текстом, пока не редактируем (напр. revert при провале PATCH).
   useEffect(() => {
@@ -76,15 +87,10 @@ export function TaskRow({
     setDraft(task.text);
   }, [task.text]);
 
-  const showActions = hovered || editing;
   const overdue = task.deadline ? isOverdue(task.deadline, task.done) : false;
 
   return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 0" }}
-    >
+    <div style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "13px 0" }}>
       {/* checkbox 20px */}
       <button
         type="button"
@@ -116,37 +122,91 @@ export function TaskRow({
       {/* text + deadline chip */}
       <div style={{ flex: 1, minWidth: 0 }}>
         {editing ? (
-          <input
-            ref={inputRef}
-            className="task-edit-input"
-            value={draft}
-            maxLength={MAX_TASK_LEN}
-            aria-label={`редактировать пункт ${index + 1}`}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commitEdit}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                commitEdit();
-              } else if (e.key === "Escape") {
-                e.preventDefault();
-                cancelEdit();
-              }
-            }}
+          <div
             style={{
-              width: "100%",
-              border: "none",
-              borderBottom: "1px solid var(--brand-primary)",
-              outline: "none",
-              background: "transparent",
-              padding: "0 0 2px",
-              borderRadius: 0,
-              font: "inherit",
-              fontSize: 15,
-              color: "var(--fg-1)",
-              letterSpacing: "-0.005em",
+              display: "flex",
+              alignItems: "flex-start",
+              gap: 6,
+              borderBottom: "1.5px solid var(--brand-primary)",
+              paddingBottom: 3,
             }}
-          />
+          >
+            <textarea
+              ref={inputRef}
+              className="task-edit-input"
+              value={draft}
+              maxLength={MAX_TASK_LEN}
+              rows={1}
+              aria-label={`редактировать пункт ${index + 1}`}
+              onChange={(e) => {
+                setDraft(e.target.value);
+                autoGrow();
+              }}
+              onBlur={commitEdit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  // Enter коммитит (задача — одна строка); перенос не нужен.
+                  e.preventDefault();
+                  commitEdit();
+                } else if (e.key === "Escape") {
+                  e.preventDefault();
+                  cancelEdit();
+                }
+              }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                padding: 0,
+                margin: 0,
+                resize: "none",
+                overflow: "hidden",
+                font: "inherit",
+                fontFamily: "var(--font-ui)",
+                fontSize: 16,
+                lineHeight: 1.45,
+                color: "var(--fg-1)",
+                caretColor: "var(--brand-primary)",
+                letterSpacing: "-0.005em",
+              }}
+            />
+            {draft.length > 0 && (
+              <button
+                type="button"
+                aria-label="очистить текст"
+                // mousedown.preventDefault — чтобы не терять фокус textarea (иначе blur коммитит).
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  setDraft("");
+                  const el = inputRef.current;
+                  if (el) {
+                    el.focus();
+                    autoGrow();
+                  }
+                }}
+                style={{
+                  flexShrink: 0,
+                  width: 24,
+                  height: 24,
+                  marginTop: 1,
+                  borderRadius: "50%",
+                  border: "none",
+                  background: "var(--fill-2, rgba(60,40,25,0.06))",
+                  color: "var(--fg-3)",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: 0,
+                  WebkitTapHighlightColor: "transparent",
+                }}
+              >
+                {cloneElement(Icons.close, { size: 13, sw: 2 } as never)}
+              </button>
+            )}
+          </div>
         ) : (
           <span
             onClick={startEdit}
@@ -160,11 +220,11 @@ export function TaskRow({
             }}
             style={{
               display: "block",
-              fontSize: 15,
+              fontSize: 16,
               color: task.done ? "var(--fg-3)" : "var(--fg-1)",
               textDecoration: task.done ? "line-through" : "none",
               textDecorationColor: "var(--fg-3)",
-              lineHeight: 1.4,
+              lineHeight: 1.45,
               letterSpacing: "-0.005em",
               cursor: "text",
               wordBreak: "break-word",
@@ -204,33 +264,31 @@ export function TaskRow({
         )}
       </div>
 
-      {/* kebab ⋮ — на ховере/фокусе */}
+      {/* kebab ⋮ — всегда видим; hit-area 44×44 (Apple HIG min tap target). */}
       <button
         type="button"
         aria-label={`меню пункта ${index + 1}`}
         onMouseDown={(e) => e.preventDefault()}
         onClick={onMenu}
         style={{
-          width: 22,
-          height: 22,
-          borderRadius: 6,
+          width: 44,
+          height: 44,
+          // компенсируем большой hit-area отрицательными полями, чтобы не раздувать строку
+          margin: "-10px -12px -10px 0",
+          borderRadius: 10,
           border: "none",
           background: "transparent",
-          color: "var(--fg-4)",
+          color: "var(--fg-3)",
           cursor: "pointer",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           padding: 0,
-          marginTop: 1,
           flexShrink: 0,
-          opacity: showActions ? 1 : 0,
-          pointerEvents: showActions ? "auto" : "none",
-          transition: "opacity 160ms var(--ease-out)",
           WebkitTapHighlightColor: "transparent",
         }}
       >
-        {cloneElement(ExtraIcons.kebab, { size: 16, sw: 1.7 } as never)}
+        {cloneElement(ExtraIcons.kebab, { size: 20, sw: 1.8 } as never)}
       </button>
     </div>
   );
