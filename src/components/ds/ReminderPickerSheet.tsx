@@ -76,10 +76,13 @@ export function ReminderPickerSheet({
 }) {
   const init = initialISO ? new Date(initialISO) : null;
 
+  // Перенос (snooze) сохраняет только время → текст read-only (правка не персистится, бэк-лимит).
+  const textReadOnly = !!initialISO;
   // Пресеты: при переносе первая карточка = исходное время (выбрана по умолчанию).
+  const initParts = init ? fmtParts(init) : null;
   const presets = init
     ? [
-        { id: ORIGINAL, label: fmtParts(init).day, sub: fmtParts(init).time, iso: initialISO! },
+        { id: ORIGINAL, label: initParts!.day, sub: initParts!.time, iso: initialISO! },
         { id: "tonight", label: "Сегодня вечером", sub: "18:00" },
         { id: "morning", label: "Завтра утром", sub: "9:00" },
         { id: "weekend", label: "На выходные", sub: "сб 10:00" },
@@ -126,7 +129,8 @@ export function ReminderPickerSheet({
   // Сравниваем timestamp, не ISO-строку (бэк может вернуть другую точность/таймзону).
   const timeChanged =
     resolved !== null && (!initialISO || resolved.getTime() !== new Date(initialISO).getTime());
-  const textChanged = text.trim() !== contextText.trim();
+  // На переносе текст read-only → правка текста не должна включать кнопку (не сохранится).
+  const textChanged = !textReadOnly && text.trim() !== contextText.trim();
   const enabled = isFuture && (timeChanged || textChanged) && resolved !== null;
 
   const confirm = () => {
@@ -195,6 +199,7 @@ export function ReminderPickerSheet({
             ref={taRef}
             value={text}
             rows={1}
+            readOnly={textReadOnly}
             onChange={(e) => {
               setText(e.target.value);
               autoGrow();
@@ -218,7 +223,7 @@ export function ReminderPickerSheet({
               letterSpacing: "-0.01em",
             }}
           />
-          {text.length > 0 && (
+          {text.length > 0 && !textReadOnly && (
             <button
               type="button"
               aria-label="очистить текст"
@@ -322,7 +327,9 @@ export function ReminderPickerSheet({
           label="Напомнить"
           enabled={enabled}
           onClick={confirm}
-          disabledHint={!isFuture ? "Выбери время в будущем" : "Измени время или текст"}
+          disabledHint={
+            !resolved ? "Выбери время" : !isFuture ? "Выбери время в будущем" : "Измени время или текст"
+          }
         />
       </div>
     </BottomSheet>

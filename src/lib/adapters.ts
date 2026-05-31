@@ -172,7 +172,6 @@ export interface ReminderGroupRow {
   avatar: { kind: "letter"; letter: string };
   name: string;
   time: string;
-  preview: string;
 }
 
 /** Reminders list → groups (сегодня/завтра/на неделе/позже) for RemindersSheet. */
@@ -192,20 +191,17 @@ export function groupReminders(items: RemItem[]): { label: string; rows: Reminde
     const label = diff <= 0 ? "сегодня" : diff === 1 ? "завтра" : diff < 7 ? "на неделе" : "позже";
 
     // Имя: текст задачи (payload.text для per-item) → заголовок закладки →
-    // сниппет текста → дефолт. Превью: если имя из payload — показываем
-    // заголовок списка как контекст, иначе сниппет raw_text.
+    // сниппет текста → дефолт.
     const payloadText = typeof r.payload?.text === "string" ? (r.payload.text as string).trim() : "";
     const title = (r.bookmark_title || "").trim();
     const rawSnippet = (r.bookmark_raw_text || "").trim().slice(0, 60);
     const name = payloadText || title || rawSnippet || "напоминание";
-    const preview = payloadText ? title : rawSnippet;
 
     buckets[label].push({
       id: r.id,
       avatar: { kind: "letter", letter: ((name || "·")[0] || "·").toUpperCase() },
       name,
       time: `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`,
-      preview,
     });
   }
   return Object.entries(buckets)

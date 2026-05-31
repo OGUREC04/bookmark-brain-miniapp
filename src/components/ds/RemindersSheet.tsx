@@ -11,7 +11,6 @@ export interface ReminderRowData {
   avatar: React.ComponentProps<typeof Avatar>;
   name: string;
   time: string;
-  preview: string;
 }
 
 export function RemindersSheet({
@@ -150,15 +149,9 @@ function ReminderRow({
         </span>
       </div>
       {/* Вся карточка = перенос (onSnooze). Здесь только «отменить» (× как в шапке);
-          tap по карточке не должен его триггерить — stopPropagation. */}
-      <span
-        onClick={(e) => {
-          e.stopPropagation();
-          onCancel?.();
-        }}
-        style={{ flexShrink: 0, display: "flex" }}
-      >
-        <SheetCloseBtn onClick={() => onCancel?.()} />
+          span ловит bubbling (stopPropagation), действие — на SheetCloseBtn (без дубля). */}
+      <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "flex" }}>
+        <SheetCloseBtn label="отменить" onClick={() => onCancel?.()} />
       </span>
     </div>
   );

@@ -145,12 +145,12 @@ export function SheetBackBtn({ onClick }: { onClick: () => void }) {
   );
 }
 
-export function SheetCloseBtn({ onClick }: { onClick: () => void }) {
+export function SheetCloseBtn({ onClick, label = "закрыть" }: { onClick: () => void; label?: string }) {
   const [h, setH] = useState(false);
   return (
     <button
       type="button"
-      aria-label="закрыть"
+      aria-label={label}
       onClick={onClick}
       onMouseEnter={() => setH(true)}
       onMouseLeave={() => setH(false)}
