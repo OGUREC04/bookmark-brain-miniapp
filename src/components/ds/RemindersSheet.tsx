@@ -1,6 +1,8 @@
 /* RemindersSheet — grouped reminders list. Ported 1:1; styles verbatim. */
+import { cloneElement } from "react";
+import { Icons } from "./icons";
 import { Avatar } from "./ChatRow";
-import { BottomSheet, SheetTitle, SheetCloseBtn } from "./sheetPrimitives";
+import { BottomSheet, SheetTitle } from "./sheetPrimitives";
 
 function cap(s: string): string {
   return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
@@ -148,11 +150,33 @@ function ReminderRow({
           {name}
         </span>
       </div>
-      {/* Вся карточка = перенос (onSnooze). Здесь только «отменить» (× как в шапке);
-          span ловит bubbling (stopPropagation), действие — на SheetCloseBtn (без дубля). */}
-      <span onClick={(e) => e.stopPropagation()} style={{ flexShrink: 0, display: "flex" }}>
-        <SheetCloseBtn label="отменить" onClick={() => onCancel?.()} />
-      </span>
+      {/* Вся карточка = перенос (onSnooze); × отменяет пункт (stopPropagation, без дубля). */}
+      <button
+        type="button"
+        aria-label="отменить"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCancel?.();
+        }}
+        style={{
+          flexShrink: 0,
+          width: 36,
+          height: 36,
+          marginTop: 1,
+          borderRadius: "50%",
+          border: "none",
+          background: "transparent",
+          color: "var(--fg-4)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          padding: 0,
+          WebkitTapHighlightColor: "transparent",
+        }}
+      >
+        {cloneElement(Icons.close, { size: 17, sw: 1.7 } as never)}
+      </button>
     </div>
   );
 }

@@ -158,27 +158,35 @@ export function ReminderPickerSheet({
   return (
     <BottomSheet onDismiss={onDismiss}>
       <SheetTitle
-        title="Напомнить"
+        // время — бейдж рядом с заголовком («Напомнить · Сегодня, 11:00»)
+        title={
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <span>Напомнить</span>
+            {parts && (
+              <span
+                style={{
+                  padding: "2px 9px",
+                  borderRadius: 999,
+                  background: "var(--brand-primary-tint)",
+                  border: "1px solid rgba(122,156,122,0.35)",
+                  color: "var(--brand-primary-press)",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  letterSpacing: "-0.005em",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {parts.day}, {parts.time}
+              </span>
+            )}
+          </span>
+        }
         onBack={isCustom ? () => setPicked(init ? ORIGINAL : "") : onBack}
         onClose={isCustom ? undefined : onDismiss}
       />
 
-      {/* время + текст — закреплены (не скроллятся), чтобы всегда были видны */}
-      {/* время — НАД основным текстом, акцентом */}
-        <div style={{ padding: "0 16px 8px" }}>
-          <span
-            style={{
-              fontFamily: "var(--font-ui)",
-              fontSize: 17,
-              fontWeight: 600,
-              color: parts ? "var(--brand-primary-press)" : "var(--fg-3)",
-              letterSpacing: "-0.01em",
-            }}
-          >
-            {parts ? `${parts.day}, ${parts.time}` : "Выбери время"}
-          </span>
-        </div>
-
+      {/* текст — закреплён (не скроллится), чтобы всегда был виден */}
         {/* редактируемый текст — как пункт списка (textarea, brand-caret, ×-очистка) */}
         <div
           style={{
@@ -203,6 +211,13 @@ export function ReminderPickerSheet({
             onChange={(e) => {
               setText(e.target.value);
               autoGrow();
+            }}
+            onKeyDown={(e) => {
+              // Enter — закрыть клавиатуру (текст однострочный, перенос не нужен).
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
             }}
             aria-label="текст напоминания"
             placeholder="о чём напомнить"
@@ -262,7 +277,7 @@ export function ReminderPickerSheet({
               {presets.map((s) => {
                 const on = picked === s.id;
                 return (
-                  <button key={s.id} onClick={() => setPicked(s.id)} style={cardStyle(on)}>
+                  <button key={s.id} onClick={() => { taRef.current?.blur(); setPicked(s.id); }} style={cardStyle(on)}>
                     {on && (
                       <span style={{ position: "absolute", top: 10, right: 10, color: "var(--brand-primary)", display: "flex" }}>
                         {cloneElement(Icons.check, { size: 15, sw: 2.5 } as never)}
@@ -286,7 +301,7 @@ export function ReminderPickerSheet({
 
             <div style={{ padding: "8px 16px 0" }}>
               <button
-                onClick={() => setPicked(CUSTOM)}
+                onClick={() => { taRef.current?.blur(); setPicked(CUSTOM); }}
                 style={{
                   width: "100%",
                   display: "flex",

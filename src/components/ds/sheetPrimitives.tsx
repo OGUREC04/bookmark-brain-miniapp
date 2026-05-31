@@ -115,61 +115,52 @@ export function SheetTitle({
   );
 }
 
+/** Назад — зелёный шеврон (бренд). */
 export function SheetBackBtn({ onClick }: { onClick: () => void }) {
-  const [h, setH] = useState(false);
   return (
     <button
       type="button"
       aria-label="назад"
       onClick={onClick}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
       style={{
-        width: 32,
         height: 32,
         flexShrink: 0,
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        background: h ? "var(--bg-sunken)" : "transparent",
+        background: "transparent",
         border: "none",
-        borderRadius: 999,
-        color: h ? "var(--fg-1)" : "var(--fg-2)",
+        padding: "0 4px 0 0",
+        color: "var(--brand-primary)",
         cursor: "pointer",
-        transition: "color 140ms var(--ease-out), background 140ms var(--ease-out)",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      {cloneElement(Icons.chevronLeft, { size: 20, sw: 2 } as never)}
+      {cloneElement(Icons.chevronLeft, { size: 22, sw: 2.2 } as never)}
     </button>
   );
 }
 
-export function SheetCloseBtn({ onClick, label = "закрыть" }: { onClick: () => void; label?: string }) {
-  const [h, setH] = useState(false);
+/** Закрыть — зелёный текст (бренд), как нативные iOS-кнопки. */
+export function SheetCloseBtn({ onClick, label = "Закрыть" }: { onClick: () => void; label?: string }) {
   return (
     <button
       type="button"
-      aria-label={label}
       onClick={onClick}
-      onMouseEnter={() => setH(true)}
-      onMouseLeave={() => setH(false)}
       style={{
-        width: 30,
-        height: 30,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: h ? "var(--bg-sunken)" : "var(--bg-sunken, rgba(234,227,207,0.5))",
+        background: "transparent",
         border: "none",
-        borderRadius: 999,
-        color: h ? "var(--fg-1)" : "var(--fg-3)",
+        padding: "4px 2px",
+        color: "var(--brand-primary)",
+        fontFamily: "var(--font-ui)",
+        fontSize: 15,
+        fontWeight: 600,
+        letterSpacing: "-0.01em",
         cursor: "pointer",
-        transition: "color 140ms var(--ease-out)",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      {cloneElement(Icons.close, { size: 15, sw: 1.8 } as never)}
+      {label}
     </button>
   );
 }
