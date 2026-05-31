@@ -1,7 +1,8 @@
 /* ReminderPickerSheet — время над текстом + редактируемый текст (как пункт списка) +
    пресеты-карточки (при переносе первая = исходное время) + календарь.
    Кнопка активна только если время/текст изменились. Sentence-case. */
-import { useState, useRef, useCallback, cloneElement } from "react";
+import { useState, useRef, useCallback, useEffect, cloneElement } from "react";
+import { createPortal } from "react-dom";
 import { Icons, ExtraIcons } from "./icons";
 import { Glyph } from "./atoms";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
@@ -105,6 +106,16 @@ export function ReminderPickerSheet({
   // Барабан времени открывается поповером по тапу на строку (iOS-стиль), не стопкой под календарём.
   const [timeOpen, setTimeOpen] = useState(false);
 
+  // Escape закрывает поповер (Telegram Desktop/web — там есть клавиатура).
+  useEffect(() => {
+    if (!timeOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setTimeOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [timeOpen]);
+
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const autoGrow = useCallback(() => {
     const el = taRef.current;
@@ -184,7 +195,7 @@ export function ReminderPickerSheet({
             )}
           </span>
         }
-        onBack={isCustom ? () => setPicked(init ? ORIGINAL : "") : onBack}
+        onBack={isCustom ? () => { setTimeOpen(false); setPicked(init ? ORIGINAL : ""); } : onBack}
         onClose={isCustom ? undefined : onDismiss}
       />
 
@@ -367,7 +378,7 @@ export function ReminderPickerSheet({
                   letterSpacing: ".04em",
                 }}
               >
-                {hour}:{pad2(minute)}
+                {pad2(hour)}:{pad2(minute)}
               </span>
             </button>
           </div>
@@ -385,8 +396,10 @@ export function ReminderPickerSheet({
         />
       </div>
 
-      {/* поповер барабана времени — поверх шторки; тап-вне или «Готово» закрывает */}
-      {timeOpen && (
+      {/* поповер барабана времени — поверх шторки; тап-вне или «Готово» закрывает.
+          createPortal в body: backdrop-filter родителя (BottomSheet) в Telegram WebView
+          может промотить containing-block у fixed-элемента → поповер мисс-позиционируется. */}
+      {timeOpen && createPortal(
         <div
           onClick={() => setTimeOpen(false)}
           onTouchMove={(e) => e.preventDefault()}
@@ -404,6 +417,8 @@ export function ReminderPickerSheet({
         >
           <div
             onClick={(e) => e.stopPropagation()}
+            // не давать скроллу барабана всплыть к backdrop (иначе preventDefault душит momentum-scroll в iOS WebView)
+            onTouchMove={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-label="выбор времени"
@@ -453,7 +468,8 @@ export function ReminderPickerSheet({
               Готово
             </button>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </BottomSheet>
   );
