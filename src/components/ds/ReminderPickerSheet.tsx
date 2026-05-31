@@ -83,7 +83,9 @@ export function ReminderPickerSheet({
   onConfirm?: (fireAtISO: string, text: string) => void;
 }) {
   const init = initialISO ? new Date(initialISO) : null;
-  const [picked, setPicked] = useState<string>(init ? CUSTOM : "tonight");
+  // Всегда открываемся на ПРЕСЕТАХ (даже при переносе); existing-время предзаполняет
+  // календарь/колесо, но не прыгаем сразу в custom.
+  const [picked, setPicked] = useState<string>("tonight");
   const [date, setDate] = useState<string>(
     init ? `${init.getFullYear()}-${pad2(init.getMonth() + 1)}-${pad2(init.getDate())}` : todayISO()
   );
@@ -124,6 +126,9 @@ export function ReminderPickerSheet({
         onClose={isCustom ? undefined : onDismiss}
       />
 
+      {/* скролл-середина: при высоком календаре заголовок (с ‹) и кнопка
+          «напомнить» остаются закреплены, скроллится только эта область. */}
+      <div style={{ maxHeight: "58vh", overflowY: "auto", overscrollBehavior: "contain" }}>
       {/* редактируемый текст напоминания — НЕ приглушённый, это важная инфа */}
       <div
         style={{
@@ -244,6 +249,7 @@ export function ReminderPickerSheet({
           </div>
         </div>
       )}
+      </div>
 
       <div style={{ padding: "16px 16px 0" }}>
         <TelegramMainButton

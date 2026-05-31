@@ -1,6 +1,6 @@
 /* RemindersSheet — grouped reminders list. Ported 1:1; styles verbatim. */
 import { useState, cloneElement } from "react";
-import { Icons, ExtraIcons } from "./icons";
+import { Icons } from "./icons";
 import { Avatar } from "./ChatRow";
 import { BottomSheet, SheetTitle } from "./sheetPrimitives";
 
@@ -102,16 +102,26 @@ function ReminderRow({
   onSnooze,
   onCancel,
 }: ReminderRowData & { isLast?: boolean; onSnooze?: () => void; onCancel?: () => void }) {
-  const [hSnooze, setHSnooze] = useState(false);
   const [hCancel, setHCancel] = useState(false);
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 16px", cursor: "pointer", position: "relative" }}>
+    <div
+      onClick={onSnooze}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSnooze?.();
+        }
+      }}
+      style={{ display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 16px", cursor: "pointer", position: "relative" }}
+    >
       {!isLast && (
         <span style={{ position: "absolute", left: 70, right: 16, bottom: 0, borderBottom: "0.5px solid var(--border-1)" }} />
       )}
       <Avatar {...avatar} size={38} />
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
           <span
             style={{
               fontSize: 14,
@@ -120,14 +130,17 @@ function ReminderRow({
               letterSpacing: "-0.01em",
               flex: 1,
               minWidth: 0,
-              whiteSpace: "nowrap",
+              // полный текст в 2 строки, дальше — многоточие
+              display: "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
               overflow: "hidden",
-              textOverflow: "ellipsis",
+              lineHeight: 1.3,
             }}
           >
             {name}
           </span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: ".04em", fontWeight: 500 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: ".04em", fontWeight: 500, flexShrink: 0 }}>
             {time}
           </span>
         </div>
@@ -147,52 +160,34 @@ function ReminderRow({
           {preview}
         </div>
       </div>
-      <div style={{ display: "flex", gap: 6 }}>
-        <button
-          aria-label="отложить"
-          onClick={onSnooze}
-          onMouseEnter={() => setHSnooze(true)}
-          onMouseLeave={() => setHSnooze(false)}
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: hSnooze ? "var(--brand-primary-tint)" : "rgba(255,252,246,0.7)",
-            border: "1px solid rgba(255,255,255,0.6)",
-            color: hSnooze ? "var(--brand-primary-press)" : "var(--fg-2)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
-          }}
-        >
-          {cloneElement(ExtraIcons.clock, { size: 19, sw: 1.7 } as never)}
-        </button>
-        <button
-          aria-label="отменить"
-          onClick={onCancel}
-          onMouseEnter={() => setHCancel(true)}
-          onMouseLeave={() => setHCancel(false)}
-          style={{
-            width: 42,
-            height: 42,
-            borderRadius: 12,
-            background: hCancel ? "var(--bg-sunken)" : "transparent",
-            border: "1px solid var(--border-1)",
-            color: hCancel ? "var(--fg-2)" : "var(--fg-3)",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
-          }}
-        >
-          {cloneElement(Icons.close, { size: 18, sw: 1.7 } as never)}
-        </button>
-      </div>
+      {/* Вся карточка = перенос (onSnooze). Здесь только «отменить»; tap по карточке
+          не должен его триггерить — stopPropagation. */}
+      <button
+        aria-label="отменить"
+        onClick={(e) => {
+          e.stopPropagation();
+          onCancel?.();
+        }}
+        onMouseEnter={() => setHCancel(true)}
+        onMouseLeave={() => setHCancel(false)}
+        style={{
+          width: 42,
+          height: 42,
+          borderRadius: 12,
+          background: hCancel ? "var(--bg-sunken)" : "transparent",
+          border: "1px solid var(--border-1)",
+          color: hCancel ? "var(--fg-2)" : "var(--fg-3)",
+          cursor: "pointer",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          marginTop: 1,
+          transition: "background 140ms var(--ease-out), color 140ms var(--ease-out)",
+        }}
+      >
+        {cloneElement(Icons.close, { size: 18, sw: 1.7 } as never)}
+      </button>
     </div>
   );
 }
