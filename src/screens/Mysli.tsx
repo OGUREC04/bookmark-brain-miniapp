@@ -281,8 +281,8 @@ export function MysliScreen({
 
   return (
     <div style={{ padding: "0 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
-      {/* sticky-шапка: поиск + чипы прилипают к верху при скролле ленты.
-          Лёгкий frosted-фон чтобы строки ленты не просвечивали под ними. */}
+      {/* sticky — ТОЛЬКО строка поиска + колокольчик: при скролле ленты она
+          остаётся плавающей вверху (frosted-фон), а чипы уезжают под неё. */}
       <div
         style={{
           position: "sticky",
@@ -295,22 +295,19 @@ export function MysliScreen({
           WebkitBackdropFilter: "var(--blur-nav)",
         }}
       >
-        {/* row 1 — поиск + колокольчик */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SearchBar onFocus={onSearch} />
           </div>
           <BellPillCompact count={reminderCount} onClick={onBell} />
         </div>
-
-        {/* row 2 — фильтр-чипы + переключатель вида */}
-        <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "0 16px" }}>
-          <FilterChips active={filter} onChange={setFilter} counts={counts} />
-          <ViewSegment view={view} setView={setView} />
-        </div>
       </div>
 
-      <div style={{ height: 6 }} />
+      {/* фильтр-чипы + переключатель вида — в обычном потоке (скроллятся) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "12px 16px 14px" }}>
+        <FilterChips active={filter} onChange={setFilter} counts={counts} />
+        <ViewSegment view={view} setView={setView} />
+      </div>
 
       {SHOW_SUGGESTIONS && !hideSuggest && view === "chat" && filter === "all" && !loading && items.length > 0 && (
         <SuggestionPager items={SUGGESTION_DEMO} onDismissAll={() => setHideSuggest(true)} />

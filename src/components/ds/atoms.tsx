@@ -156,7 +156,7 @@ export function SearchBar({
         display: "flex",
         alignItems: "center",
         gap: 12,
-        padding: "16px 18px",
+        padding: "18px 20px",
         background: "var(--surface-glass-strong)",
         backdropFilter: "var(--blur-card)",
         WebkitBackdropFilter: "var(--blur-card)",
@@ -170,7 +170,7 @@ export function SearchBar({
       }}
     >
       <span style={{ color: "var(--fg-3)", display: "flex", flexShrink: 0 }}>
-        {cloneElement(Icons.search, { size: 19, sw: 1.6 } as never)}
+        {cloneElement(Icons.search, { size: 20, sw: 1.6 } as never)}
       </span>
       {value !== undefined && value !== "" ? (
         <input
@@ -183,7 +183,7 @@ export function SearchBar({
             outline: "none",
             background: "transparent",
             font: "inherit",
-            fontSize: 16,
+            fontSize: 17,
             color: "var(--fg-1)",
             letterSpacing: "-0.01em",
           }}
@@ -192,7 +192,7 @@ export function SearchBar({
         <span
           style={{
             flex: 1,
-            fontSize: 16,
+            fontSize: 17,
             color: "var(--fg-3)",
             fontFamily: "var(--font-display)",
             fontStyle: "italic",
