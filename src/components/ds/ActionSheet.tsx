@@ -27,10 +27,10 @@ export function ActionSheet({
   onDelete?: () => void;
 }) {
   const items = [
-    { id: "remind", icon: ExtraIcons.clock, label: "напомнить", sub: "выбрать время", on: onRemind },
-    { id: "star", glyph: "★", label: "в избранное", sub: null, on: onStar },
-    { id: "space", icon: ExtraIcons.folder, label: "в пространство", sub: "выбрать", on: onMove },
-    { id: "del", icon: ExtraIcons.trash, label: "удалить", sub: null, danger: true, on: onDelete },
+    { id: "remind", icon: ExtraIcons.clock, label: "Напомнить", sub: "Выбрать время", on: onRemind },
+    { id: "star", glyph: "★", label: "В избранное", sub: null, on: onStar },
+    { id: "space", icon: ExtraIcons.folder, label: "В пространство", sub: "Выбрать", on: onMove },
+    { id: "del", icon: ExtraIcons.trash, label: "Удалить", sub: null, danger: true, on: onDelete },
   ] as const;
   return (
     <BottomSheet onDismiss={onDismiss}>

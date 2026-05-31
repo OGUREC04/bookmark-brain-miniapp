@@ -26,7 +26,7 @@ export function QuickCreateSheet({
 
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="новая мысль" right="бот разберёт сам" onClose={onDismiss} />
+      <SheetTitle title="Новая мысль" right="Бот разберёт сам" onClose={onDismiss} />
 
       <div style={{ padding: "0 16px" }}>
         <div
@@ -53,7 +53,7 @@ export function QuickCreateSheet({
                 pointerEvents: "none",
               }}
             >
-              пиши мысль · вставь ссылку · бот разберёт сам
+              Пиши мысль · вставь ссылку · бот разберёт сам
             </span>
           )}
           <textarea
@@ -123,12 +123,12 @@ export function QuickCreateSheet({
               letterSpacing: 0,
             }}
           >
-            вложения — в боте
+            Вложения — в боте
           </span>
         </div>
 
         <div style={{ marginTop: 8 }}>
-          <TelegramMainButton label={saving ? "сохраняю…" : "сохранить"} enabled={enabled} onClick={save} />
+          <TelegramMainButton label={saving ? "Сохраняю…" : "Сохранить"} enabled={enabled} onClick={save} />
         </div>
       </div>
     </BottomSheet>

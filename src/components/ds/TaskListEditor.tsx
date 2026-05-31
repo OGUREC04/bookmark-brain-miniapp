@@ -79,7 +79,7 @@ export function TaskListEditor({
         // откат к последнему сохранённому состоянию
         if (!silent && aliveRef.current) setTasks(savedRef.current);
         hapticNotify("error");
-        onError?.("не сохранилось");
+        onError?.("Не сохранилось");
       }
     },
     [bookmark.id, onCommitted, onError]
@@ -177,9 +177,9 @@ export function TaskListEditor({
         ?.writeText(text)
         .then(() => {
           hapticNotify("success");
-          onToast?.("скопировано");
+          onToast?.("Скопировано");
         })
-        .catch(() => onToast?.("не удалось скопировать"));
+        .catch(() => onToast?.("Не удалось скопировать"));
     },
     [onToast]
   );
@@ -256,7 +256,7 @@ export function TaskListEditor({
               whiteSpace: "nowrap",
             }}
           >
-            <span>пункт удалён</span>
+            <span>Пункт удалён</span>
             <button
               type="button"
               onClick={undoDelete}
@@ -271,7 +271,7 @@ export function TaskListEditor({
                 padding: 0,
               }}
             >
-              отменить
+              Отменить
             </button>
           </div>,
           document.body
@@ -283,11 +283,11 @@ export function TaskListEditor({
         tasks[menuIndex] &&
         createPortal(
           <BottomSheet onDismiss={() => setMenuIndex(null)}>
-            <SheetTitle title="пункт" onClose={() => setMenuIndex(null)} />
+            <SheetTitle title="Пункт" onClose={() => setMenuIndex(null)} />
             <div style={{ padding: "0 12px 4px" }}>
               <MenuItem
                 icon={ExtraIcons.copy}
-                label="копировать"
+                label="Копировать"
                 onClick={() => {
                   copyText(tasks[menuIndex].text);
                   setMenuIndex(null);
@@ -295,7 +295,7 @@ export function TaskListEditor({
               />
               <MenuItem
                 icon={ExtraIcons.calendar}
-                label={tasks[menuIndex].deadline ? "изменить дедлайн" : "напомнить"}
+                label={tasks[menuIndex].deadline ? "Изменить дедлайн" : "Напомнить"}
                 onClick={() => {
                   setDeadlineIndex(menuIndex);
                   setMenuIndex(null);
@@ -303,7 +303,7 @@ export function TaskListEditor({
               />
               <MenuItem
                 icon={ExtraIcons.trash}
-                label="удалить"
+                label="Удалить"
                 danger
                 onClick={() => {
                   const i = menuIndex;
@@ -321,7 +321,7 @@ export function TaskListEditor({
         tasks[deadlineIndex] &&
         createPortal(
           <DatePickerSheet
-            contextText={tasks[deadlineIndex].text || "пункт"}
+            contextText={tasks[deadlineIndex].text || "Пункт"}
             value={tasks[deadlineIndex].deadline ?? null}
             onDismiss={() => setDeadlineIndex(null)}
             onConfirm={(iso) => {

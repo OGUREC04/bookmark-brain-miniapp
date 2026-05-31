@@ -9,9 +9,9 @@ import { Icons, ExtraIcons } from "./icons";
 export type NavTab = "mysli" | "spaces" | "me";
 
 const tabs: { id: NavTab; label: string; icon: React.ReactElement }[] = [
-  { id: "mysli", label: "мысли", icon: ExtraIcons.thoughts },
-  { id: "spaces", label: "пространства", icon: ExtraIcons.spaces },
-  { id: "me", label: "я", icon: Icons.user },
+  { id: "mysli", label: "Мысли", icon: ExtraIcons.thoughts },
+  { id: "spaces", label: "Пространства", icon: ExtraIcons.spaces },
+  { id: "me", label: "Я", icon: Icons.user },
 ];
 
 function TabItem({

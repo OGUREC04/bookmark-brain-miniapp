@@ -51,7 +51,7 @@ export function App() {
   // "В разработке" stub for actions without backend yet.
   const comingSoon = useCallback(() => {
     hapticImpact("light");
-    setToast("в разработке");
+    setToast("В разработке");
   }, []);
 
   useEffect(() => {
@@ -277,7 +277,7 @@ export function App() {
             const ctx =
               (typeof r?.payload?.text === "string" && r.payload.text.trim()) ||
               r?.bookmark_title ||
-              "напоминание";
+              "Напоминание";
             setSheet({ type: "reminderReschedule", reminderId: id, contextText: ctx, initialISO: r?.fire_at ?? null });
           }}
         />
@@ -302,7 +302,7 @@ export function App() {
 
       {sheet?.type === "reminderPicker" && (
         <ReminderPickerSheet
-          contextText={sheet.bookmark.title || (sheet.bookmark.raw_text ?? "").slice(0, 60) || "без названия"}
+          contextText={sheet.bookmark.title || (sheet.bookmark.raw_text ?? "").slice(0, 60) || "Без названия"}
           onDismiss={closeSheet}
           onBack={() => setSheet({ type: "action", target: targetOf(sheet.bookmark), bookmark: sheet.bookmark })}
           onConfirm={(iso, text) =>
@@ -394,7 +394,7 @@ export function App() {
             whiteSpace: "nowrap",
           }}
         >
-          <span>напоминание удалено</span>
+          <span>Напоминание удалено</span>
           <button
             type="button"
             onClick={undoReminder}
@@ -409,7 +409,7 @@ export function App() {
               padding: 0,
             }}
           >
-            отменить
+            Отменить
           </button>
         </div>
       )}

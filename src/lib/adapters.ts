@@ -17,7 +17,7 @@ import { tagStop } from "./tagPalette";
 export function titleOf(b: Bookmark, max = 80): string {
   if (b.title) return b.title;
   const raw = (b.raw_text ?? "").trim();
-  if (raw && /^https?:\/\//i.test(raw) && b.url) return hostOf(b.url) || "ссылка";
+  if (raw && /^https?:\/\//i.test(raw) && b.url) return hostOf(b.url) || "Ссылка";
   return raw.slice(0, max) || "без названия";
 }
 
@@ -195,7 +195,7 @@ export function groupReminders(items: RemItem[]): { label: string; rows: Reminde
     const payloadText = typeof r.payload?.text === "string" ? (r.payload.text as string).trim() : "";
     const title = (r.bookmark_title || "").trim();
     const rawSnippet = (r.bookmark_raw_text || "").trim().slice(0, 60);
-    const name = payloadText || title || rawSnippet || "напоминание";
+    const name = payloadText || title || rawSnippet || "Напоминание";
 
     buckets[label].push({
       id: r.id,

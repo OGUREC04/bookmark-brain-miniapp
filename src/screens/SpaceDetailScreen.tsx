@@ -143,9 +143,9 @@ export function SpaceDetailScreen({
           <Pulse />
         </div>
       ) : error ? (
-        <EmptyState glyph="⚠" head="не загрузилось" copy="проверь связь и зайди снова" />
+        <EmptyState glyph="⚠" head="Не загрузилось" copy="Проверь связь и зайди снова" />
       ) : items.length === 0 ? (
-        <EmptyState glyph="∅" head="пусто" copy="перемести сюда закладки через ⋯ → переместить" />
+        <EmptyState glyph="∅" head="Пусто" copy="Перемести сюда закладки через ⋯ → переместить" />
       ) : (
         <div>
           {rows.map((r) => {

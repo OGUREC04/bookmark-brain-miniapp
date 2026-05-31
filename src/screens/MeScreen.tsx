@@ -109,7 +109,7 @@ function SettingsCard({ rows }: { rows: SettingRow[] }) {
               letterSpacing: "-0.005em",
             }}
           >
-            скоро
+            Скоро
           </span>
         </button>
       ))}
@@ -169,7 +169,7 @@ export function MeScreen({ onComingSoon }: { onComingSoon: () => void }) {
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--fg-1)" }}>{handle}</div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em", marginTop: 2 }}>
-            {me ? `${me.bookmarks_count} закладок · ${since}` : "загрузка…"}
+            {me ? `${me.bookmarks_count} закладок · ${since}` : "Загрузка…"}
           </div>
         </div>
       </div>

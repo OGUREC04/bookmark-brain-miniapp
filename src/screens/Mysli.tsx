@@ -321,8 +321,8 @@ export function MysliScreen({
       ) : filtered.length === 0 ? (
         <EmptyState
           glyph="∅"
-          head={items.length === 0 ? "пока пусто" : "ничего по этому фильтру"}
-          copy={items.length === 0 ? "сохрани первую мысль через +" : "сбрось чипы, чтобы увидеть всё"}
+          head={items.length === 0 ? "Пока пусто" : "Ничего по этому фильтру"}
+          copy={items.length === 0 ? "Сохрани первую мысль через +" : "Сбрось чипы, чтобы увидеть всё"}
         />
       ) : view === "chat" ? (
         <ChatView items={filtered} onMore={onMore} onOpen={onOpen} />

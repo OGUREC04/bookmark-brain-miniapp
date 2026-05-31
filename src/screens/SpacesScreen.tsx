@@ -109,10 +109,10 @@ function CreateSpaceTile({ onClick }: { onClick?: () => void }) {
       </div>
       <div>
         <div style={{ fontSize: 14.5, fontWeight: 500, color: "var(--fg-2)", letterSpacing: "-0.01em", marginBottom: 4 }}>
-          создать
+          Создать
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 12.5, color: "var(--fg-3)", letterSpacing: 0 }}>
-          или дай AI собрать
+          Или дай AI собрать
         </div>
       </div>
     </div>

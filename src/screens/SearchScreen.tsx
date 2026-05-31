@@ -157,7 +157,7 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
               if (e.key === "Enter") run(q);
             }}
             autoFocus
-            placeholder="найти в памяти…"
+            placeholder="Найти в памяти…"
             style={{
               flex: 1,
               border: "none",
@@ -261,12 +261,12 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
       {!loading && !searched && (
         <EmptyState
           glyph="?"
-          head="о чём подумать?"
+          head="О чём подумать?"
           copy={
             <>
-              «анализ rlhf» · «рецепт идли»
+              «Анализ rlhf» · «Рецепт идли»
               <br />
-              «про что был тот тред»
+              «Про что был тот тред»
             </>
           }
         />
@@ -274,12 +274,12 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
       {!loading && searched && results.length === 0 && (
         <EmptyState
           glyph="∅"
-          head="ничего не нашлось"
+          head="Ничего не нашлось"
           copy={
             <>
-              попробуй другие слова
+              Попробуй другие слова
               <br />
-              или сними фильтры
+              Или сними фильтры
             </>
           }
         />

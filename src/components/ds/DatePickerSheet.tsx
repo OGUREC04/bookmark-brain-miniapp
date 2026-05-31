@@ -20,7 +20,7 @@ export function DatePickerSheet({
   const [sel, setSel] = useState<string | null>(value);
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="дедлайн" onClose={onDismiss} />
+      <SheetTitle title="Дедлайн" onClose={onDismiss} />
       <div
         style={{
           margin: "0 16px 12px",
@@ -64,11 +64,11 @@ export function DatePickerSheet({
               cursor: "pointer",
             }}
           >
-            снять
+            Снять
           </button>
         )}
         <div style={{ flex: 1 }}>
-          <TelegramMainButton label="готово" enabled={!!sel} onClick={() => sel && onConfirm?.(sel)} />
+          <TelegramMainButton label="Готово" enabled={!!sel} onClick={() => sel && onConfirm?.(sel)} />
         </div>
       </div>
     </BottomSheet>

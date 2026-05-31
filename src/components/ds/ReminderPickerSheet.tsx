@@ -232,7 +232,7 @@ export function ReminderPickerSheet({
               }
             }}
             aria-label="текст напоминания"
-            placeholder="о чём напомнить"
+            placeholder="О чём напомнить"
             style={{
               flex: 1,
               minWidth: 0,

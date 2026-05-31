@@ -28,7 +28,7 @@ export function MoveToSpaceSheet({
   const [picked, setPicked] = useState<string>("");
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <SheetTitle title="в пространство" onBack={onBack} onClose={onDismiss} />
+      <SheetTitle title="В пространство" onBack={onBack} onClose={onDismiss} />
       <div style={{ padding: "0 12px" }}>
         {spaces.slice(0, 6).map((s) => {
           const on = picked === s.id;
@@ -114,7 +114,7 @@ export function MoveToSpaceSheet({
           >
             {cloneElement(Icons.plus, { size: 16, sw: 1.8 } as never)}
           </div>
-          <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.01em" }}>создать пространство</span>
+          <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.01em" }}>Создать пространство</span>
         </button>
       </div>
     </BottomSheet>

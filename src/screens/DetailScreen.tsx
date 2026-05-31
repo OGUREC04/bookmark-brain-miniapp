@@ -54,7 +54,7 @@ export function DetailScreen({
   const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "без названия";
   // Голая ссылка как заголовок выглядит уродливо (длинный URL) — показываем хост.
   const titleIsUrl = isUrl(rawTitle);
-  const title = titleIsUrl ? host || "ссылка" : rawTitle;
+  const title = titleIsUrl ? host || "Ссылка" : rawTitle;
   const isTaskList = bookmark.structured_data?.type === "task_list";
   // если заголовок = хост, не дублируем хост в мете
   const meta = [titleIsUrl ? null : host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
@@ -85,7 +85,7 @@ export function DetailScreen({
             </span>
           ))}
           <span
-            onClick={() => onToast?.("теги · в разработке")}
+            onClick={() => onToast?.("Теги · в разработке")}
             style={{
               fontFamily: "var(--font-ui)",
               fontSize: 13,
@@ -121,7 +121,7 @@ export function DetailScreen({
         {/* плейсхолдер контекста для голой ссылки (контекст приходит из AI-пайплайна) */}
         {titleIsUrl && !bookmark.summary && (
           <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 13.5, color: "var(--fg-3)", lineHeight: 1.45, marginBottom: 22 }}>
-            {bookmark.ai_status !== "completed" ? "Brain читает ссылку…" : "контекст не извлёкся — открой источник"}
+            {bookmark.ai_status !== "completed" ? "Brain читает ссылку…" : "Контекст не извлёкся — открой источник"}
           </div>
         )}
 
@@ -194,8 +194,8 @@ export function DetailScreen({
               onClick={() => {
                 navigator.clipboard
                   ?.writeText(bookmark.url!)
-                  .then(() => onToast?.("ссылка скопирована"))
-                  .catch(() => onToast?.("не удалось скопировать"));
+                  .then(() => onToast?.("Ссылка скопирована"))
+                  .catch(() => onToast?.("Не удалось скопировать"));
               }}
               style={{
                 flexShrink: 0,

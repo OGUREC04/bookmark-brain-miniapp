@@ -138,7 +138,7 @@ export function GlassTile({
 /* ─── search bar — telegram-style glass pill ─── */
 export function SearchBar({
   value,
-  placeholder = "найти в памяти…",
+  placeholder = "Найти в памяти…",
   onFocus,
   onChange,
   focused,
