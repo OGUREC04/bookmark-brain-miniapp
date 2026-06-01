@@ -83,6 +83,7 @@ export function SheetTitle({
   right,
   onClose,
   onBack,
+  closeLabel,
 }: {
   title: ReactNode;
   right?: ReactNode;
@@ -90,6 +91,8 @@ export function SheetTitle({
   onClose?: () => void;
   /** Шаг назад в флоу (‹ шеврон, слева). */
   onBack?: () => void;
+  /** Переопределить подпись правой кнопки (напр. «Готово» для закрытия клавиатуры). */
+  closeLabel?: string;
 }) {
   return (
     <div
@@ -113,7 +116,7 @@ export function SheetTitle({
             {right}
           </span>
         )}
-        {onClose && <SheetCloseBtn onClick={onClose} />}
+        {onClose && <SheetCloseBtn onClick={onClose} label={closeLabel} />}
       </div>
     </div>
   );
@@ -150,6 +153,10 @@ export function SheetCloseBtn({ onClick, label = "Закрыть" }: { onClick: 
   return (
     <button
       type="button"
+      // Не снимать фокус с активного поля на mousedown — иначе при «Готово»
+      // (закрытие клавиатуры) состояние успевает измениться до click и срабатывает
+      // не тот обработчик. Сам blur выполняет onClick детерминированно.
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
       style={{
         background: "transparent",

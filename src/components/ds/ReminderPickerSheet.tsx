@@ -202,7 +202,10 @@ export function ReminderPickerSheet({
           </span>
         }
         onBack={isCustom ? () => { setTimeOpen(false); setPicked(init ? ORIGINAL : ""); } : onBack}
-        onClose={isCustom ? undefined : onDismiss}
+        // При правке текста правая кнопка → «Готово»: закрывает клавиатуру, ничего не
+        // применяя (сохранение только по «Напомнить»). Иначе — обычное «Закрыть».
+        onClose={editingText ? () => taRef.current?.blur() : (isCustom ? undefined : onDismiss)}
+        closeLabel={editingText ? "Готово" : undefined}
       />
 
       {/* текст — закреплён (не скроллится), как пункт списка (textarea, brand-caret, ×-очистка) */}
