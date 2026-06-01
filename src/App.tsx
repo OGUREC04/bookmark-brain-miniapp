@@ -164,6 +164,33 @@ export function App() {
     back.hide();
   }, [searchOpen, detail, space, sheet]);
 
+  // FLAGS.TEXT_EDIT (тикет 0rn): пока открытая заметка обрабатывается AI (после правки текста
+  // или свежее сохранение) — поллим, пока ai_status не станет терминальным, и обновляем detail.
+  useEffect(() => {
+    if (!FLAGS.TEXT_EDIT || !detail) return;
+    const working = detail.ai_status === "pending" || detail.ai_status === "processing";
+    if (!working) return;
+    let cancelled = false;
+    const id = detail.id;
+    const timer = setInterval(async () => {
+      try {
+        const fresh = await api.getBookmark(id);
+        if (cancelled) return;
+        setDetail((prev) => (prev && prev.id === fresh.id ? fresh : prev));
+        if (fresh.ai_status !== "pending" && fresh.ai_status !== "processing") {
+          clearInterval(timer);
+          reload();
+        }
+      } catch {
+        /* временная ошибка сети — продолжаем поллить */
+      }
+    }, 3000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [detail?.id, detail?.ai_status]);
+
   const openActions = useCallback((b: Bookmark) => {
     hapticImpact("medium");
     setSheet({ type: "action", target: targetOf(b), bookmark: b });

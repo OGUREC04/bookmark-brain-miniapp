@@ -105,6 +105,10 @@ export function ReminderPickerSheet({
   const [hour, setHour] = useState(init ? init.getHours() : Math.min(23, new Date().getHours() + 1));
   const [minute, setMinute] = useState(init ? init.getMinutes() : 0);
   const [text, setText] = useState(contextText);
+  // Правка текста: при фокусе клавиатура съедает экран. Схлопываем среднюю секцию
+  // (пресеты/календарь), чтобы заголовок+textarea+кнопка влезли НАД клавиатурой
+  // и было видно, что редактируешь (iOS-паттерн).
+  const [editingText, setEditingText] = useState(false);
   // Барабан времени открывается поповером по тапу на строку (iOS-стиль), не стопкой под календарём.
   const [timeOpen, setTimeOpen] = useState(false);
 
@@ -222,6 +226,8 @@ export function ReminderPickerSheet({
             value={text}
             rows={1}
             readOnly={textReadOnly}
+            onFocus={() => setEditingText(true)}
+            onBlur={() => setEditingText(false)}
             onChange={(e) => {
               setText(e.target.value);
               autoGrow();
@@ -283,8 +289,17 @@ export function ReminderPickerSheet({
           )}
         </div>
 
-      {/* скролл-область: пресеты ИЛИ календарь+барабан (всё выше — закреплено) */}
-      <div style={{ maxHeight: "58vh", overflowY: "auto", overscrollBehavior: "contain" }}>
+      {/* скролл-область: пресеты ИЛИ календарь+барабан (всё выше — закреплено).
+          При правке текста схлопываем — чтобы textarea+кнопка влезли над клавиатурой. */}
+      <div
+        style={{
+          maxHeight: editingText ? 0 : "58vh",
+          overflowY: editingText ? "hidden" : "auto",
+          overscrollBehavior: "contain",
+          opacity: editingText ? 0 : 1,
+          transition: "max-height 0.2s ease, opacity 0.15s ease",
+        }}
+      >
         {!isCustom && (
           <>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, padding: "0 16px" }}>
