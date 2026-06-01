@@ -49,6 +49,7 @@ export const Icons = {
   arrow: <Icon><path d="M5 12h14M13 6l6 6-6 6" /></Icon>,
   back: <Icon><path d="M19 12H5M11 18l-6-6 6-6" /></Icon>,
   chevronLeft: <Icon><path d="M15 18l-6-6 6-6" /></Icon>,
+  chevronDown: <Icon><path d="M6 9l6 6 6-6" /></Icon>,
   link: <Icon><circle cx="5.5" cy="18.5" r="1.6" /><path d="M7 17 L17 7" /><path d="M11 6.5h6.5V13" /></Icon>,
   archive: <Icon><rect x="2" y="4" width="20" height="5" rx="1.5" /><path d="M4 9v10a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9" /><path d="M10 13h4" /></Icon>,
   task: <Icon><rect x="3" y="3" width="18" height="18" rx="4" /><path d="M8 12l3 3 5-6" /></Icon>,

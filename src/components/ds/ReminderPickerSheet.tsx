@@ -1,10 +1,9 @@
 /* ReminderPickerSheet — время над текстом + редактируемый текст (как пункт списка) +
    пресеты-карточки (при переносе первая = исходное время) + календарь.
    Кнопка активна только если время/текст изменились. Sentence-case. */
-import { useState, useRef, useCallback, useEffect, cloneElement } from "react";
+import { useState, useRef, useEffect, cloneElement } from "react";
 import { createPortal } from "react-dom";
 import { Icons, ExtraIcons } from "./icons";
-import { Glyph } from "./atoms";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
 import { Calendar } from "./Calendar";
 import { TimeWheel } from "./TimeWheel";
@@ -123,12 +122,23 @@ export function ReminderPickerSheet({
   }, [timeOpen]);
 
   const taRef = useRef<HTMLTextAreaElement | null>(null);
-  const autoGrow = useCallback(() => {
-    const el = taRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, []);
+  const displayRef = useRef<HTMLDivElement | null>(null);
+  // Развёрнут ли длинный текст в режиме просмотра (clamp 3 строки → весь текст).
+  const [expanded, setExpanded] = useState(false);
+  // Не влезает ли текст в clamp (показывать ли шеврон-раскрытие).
+  const [overflowing, setOverflowing] = useState(false);
+
+  // Войти в правку: монтируем textarea и фокусируем.
+  useEffect(() => {
+    if (editingText) taRef.current?.focus();
+  }, [editingText]);
+
+  // Меряем, переполняет ли текст 3 строки (для шеврона) — только в просмотре, не развёрнуто.
+  useEffect(() => {
+    if (editingText || expanded) return;
+    const el = displayRef.current;
+    if (el) setOverflowing(el.scrollHeight > el.clientHeight + 1);
+  }, [text, editingText, expanded]);
 
   const isCustom = picked === CUSTOM;
   const resolved: Date | null = isCustom
@@ -208,69 +218,80 @@ export function ReminderPickerSheet({
         closeLabel={editingText ? "Готово" : undefined}
       />
 
-      {/* текст — закреплён (не скроллится), как пункт списка (textarea, brand-caret, ×-очистка) */}
+      {/* текст напоминания — закреплён. Просмотр: clamp 3 строки + шеврон-раскрытие.
+          Правка: полноценная textarea с ограниченной высотой и скроллом. */}
       <div
           style={{
             margin: "4px 16px 22px",
-            padding: "15px 16px",
+            padding: "13px 14px",
             background: "rgba(234,227,207,0.45)",
             border: "1px solid var(--border-1)",
             borderRadius: 14,
             display: "flex",
             alignItems: "flex-start",
-            gap: 10,
+            gap: 8,
           }}
         >
-          <span style={{ marginTop: 2 }}>
-            <Glyph ch="✦" size={20} />
-          </span>
-          <textarea
-            ref={taRef}
-            value={text}
-            rows={1}
-            readOnly={textReadOnly}
-            onFocus={() => setEditingText(true)}
-            onBlur={() => setEditingText(false)}
-            onChange={(e) => {
-              setText(e.target.value);
-              autoGrow();
-            }}
-            onKeyDown={(e) => {
-              // Enter — закрыть клавиатуру (текст однострочный, перенос не нужен).
-              if (e.key === "Enter") {
-                e.preventDefault();
-                e.currentTarget.blur();
-              }
-            }}
-            aria-label="текст напоминания"
-            placeholder="О чём напомнить"
-            style={{
-              flex: 1,
-              minWidth: 0,
-              border: "none",
-              outline: "none",
-              background: "transparent",
-              resize: "none",
-              overflow: "hidden",
-              fontFamily: "var(--font-ui)",
-              fontSize: 15.5,
-              fontWeight: 500,
-              lineHeight: 1.4,
-              color: "var(--fg-1)",
-              caretColor: "var(--brand-primary)",
-              letterSpacing: "-0.01em",
-            }}
-          />
-          {text.length > 0 && !textReadOnly && (
+          {editingText ? (
+            <textarea
+              ref={taRef}
+              value={text}
+              readOnly={textReadOnly}
+              onBlur={() => setEditingText(false)}
+              onChange={(e) => setText(e.target.value)}
+              aria-label="текст напоминания"
+              placeholder="О чём напомнить"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                minHeight: 62,
+                maxHeight: 148,
+                border: "none",
+                outline: "none",
+                background: "transparent",
+                resize: "none",
+                overflowY: "auto",
+                fontFamily: "var(--font-ui)",
+                fontSize: 15.5,
+                fontWeight: 500,
+                lineHeight: 1.4,
+                color: "var(--fg-1)",
+                caretColor: "var(--brand-primary)",
+                letterSpacing: "-0.01em",
+              }}
+            />
+          ) : (
+            <div
+              ref={displayRef}
+              onClick={() => { if (!textReadOnly) setEditingText(true); }}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                cursor: textReadOnly ? "default" : "text",
+                fontFamily: "var(--font-ui)",
+                fontSize: 15.5,
+                fontWeight: 500,
+                lineHeight: 1.4,
+                letterSpacing: "-0.01em",
+                color: text ? "var(--fg-1)" : "var(--fg-3)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                ...(expanded
+                  ? {}
+                  : { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" }),
+              }}
+            >
+              {text || "О чём напомнить"}
+            </div>
+          )}
+
+          {/* правка → ×-очистка; просмотр длинного текста → шеврон раскрытия */}
+          {editingText && text.length > 0 && !textReadOnly ? (
             <button
               type="button"
               aria-label="очистить текст"
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                setText("");
-                taRef.current?.focus();
-                autoGrow();
-              }}
+              onClick={() => { setText(""); taRef.current?.focus(); }}
               style={{
                 flexShrink: 0,
                 width: 22,
@@ -289,7 +310,32 @@ export function ReminderPickerSheet({
             >
               {cloneElement(Icons.close, { size: 12, sw: 2 } as never)}
             </button>
-          )}
+          ) : (!editingText && (overflowing || expanded) && (
+            <button
+              type="button"
+              aria-label={expanded ? "свернуть текст" : "показать весь текст"}
+              onClick={(e) => { e.stopPropagation(); setExpanded((v) => !v); }}
+              style={{
+                flexShrink: 0,
+                width: 24,
+                height: 24,
+                marginTop: 1,
+                borderRadius: "50%",
+                border: "none",
+                background: "rgba(60,40,25,0.06)",
+                color: "var(--brand-primary)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                padding: 0,
+                transition: "transform 0.15s ease",
+                transform: expanded ? "rotate(180deg)" : "none",
+              }}
+            >
+              {cloneElement(Icons.chevronDown, { size: 16, sw: 2 } as never)}
+            </button>
+          ))}
         </div>
 
       {/* скролл-область: пресеты ИЛИ календарь+барабан (всё выше — закреплено).
