@@ -485,3 +485,19 @@
   background: var(--brand-primary, #7A9C7A);
   color: var(--fg-on-brand, #fff);
 }
+
+/* Reminder-textarea — видимый тонкий скроллбар (дефолтный overlay невидим/белый). */
+.rk-textarea {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(122, 156, 122, 0.6) transparent;
+}
+.rk-textarea::-webkit-scrollbar {
+  width: 6px;
+}
+.rk-textarea::-webkit-scrollbar-thumb {
+  background: rgba(122, 156, 122, 0.55);
+  border-radius: 3px;
+}
+.rk-textarea::-webkit-scrollbar-track {
+  background: transparent;
+}

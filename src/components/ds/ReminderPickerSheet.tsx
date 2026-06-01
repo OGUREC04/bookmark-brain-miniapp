@@ -1,7 +1,7 @@
 /* ReminderPickerSheet — время над текстом + редактируемый текст (как пункт списка) +
    пресеты-карточки (при переносе первая = исходное время) + календарь.
    Кнопка активна только если время/текст изменились. Sentence-case. */
-import { useState, useRef, useEffect, cloneElement } from "react";
+import { useState, useRef, useEffect, useCallback, cloneElement } from "react";
 import { createPortal } from "react-dom";
 import { Icons, ExtraIcons } from "./icons";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
@@ -127,11 +127,27 @@ export function ReminderPickerSheet({
   const [expanded, setExpanded] = useState(false);
   // Не влезает ли текст в clamp (показывать ли шеврон-раскрытие).
   const [overflowing, setOverflowing] = useState(false);
+  // В режиме правки: есть ли непрокрученный текст снизу (показывать fade-индикатор).
+  const [taMore, setTaMore] = useState(false);
 
-  // Войти в правку: монтируем textarea и фокусируем.
+  const updateTaMore = useCallback(() => {
+    const el = taRef.current;
+    if (!el) {
+      setTaMore(false);
+      return;
+    }
+    const overflow = el.scrollHeight > el.clientHeight + 1;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 4;
+    setTaMore(overflow && !atBottom);
+  }, []);
+
+  // Войти в правку: монтируем textarea, фокусируем и меряем переполнение.
   useEffect(() => {
-    if (editingText) taRef.current?.focus();
-  }, [editingText]);
+    if (editingText) {
+      taRef.current?.focus();
+      updateTaMore();
+    }
+  }, [editingText, updateTaMore]);
 
   // Меряем, переполняет ли текст 3 строки (для шеврона) — только в просмотре, не развёрнуто.
   useEffect(() => {
@@ -233,33 +249,54 @@ export function ReminderPickerSheet({
           }}
         >
           {editingText ? (
-            <textarea
-              ref={taRef}
-              value={text}
-              readOnly={textReadOnly}
-              onBlur={() => setEditingText(false)}
-              onChange={(e) => setText(e.target.value)}
-              aria-label="текст напоминания"
-              placeholder="О чём напомнить"
-              style={{
-                flex: 1,
-                minWidth: 0,
-                minHeight: 62,
-                maxHeight: 148,
-                border: "none",
-                outline: "none",
-                background: "transparent",
-                resize: "none",
-                overflowY: "auto",
-                fontFamily: "var(--font-ui)",
-                fontSize: 15.5,
-                fontWeight: 500,
-                lineHeight: 1.4,
-                color: "var(--fg-1)",
-                caretColor: "var(--brand-primary)",
-                letterSpacing: "-0.01em",
-              }}
-            />
+            <div style={{ position: "relative", flex: 1, minWidth: 0 }}>
+              <textarea
+                ref={taRef}
+                className="rk-textarea"
+                value={text}
+                readOnly={textReadOnly}
+                onBlur={() => setEditingText(false)}
+                onChange={(e) => { setText(e.target.value); updateTaMore(); }}
+                onScroll={updateTaMore}
+                aria-label="текст напоминания"
+                placeholder="О чём напомнить"
+                style={{
+                  display: "block",
+                  width: "100%",
+                  boxSizing: "border-box",
+                  minHeight: 96,
+                  maxHeight: 200,
+                  border: "none",
+                  outline: "none",
+                  background: "transparent",
+                  resize: "none",
+                  overflowY: "auto",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: 15.5,
+                  fontWeight: 500,
+                  lineHeight: 1.4,
+                  color: "var(--fg-1)",
+                  caretColor: "var(--brand-primary)",
+                  letterSpacing: "-0.01em",
+                }}
+              />
+              {/* fade снизу — сигнал, что есть ещё текст ниже (скролл) */}
+              {taMore && (
+                <div
+                  aria-hidden
+                  style={{
+                    position: "absolute",
+                    left: 0,
+                    right: 8,
+                    bottom: 0,
+                    height: 26,
+                    pointerEvents: "none",
+                    borderRadius: "0 0 8px 8px",
+                    background: "linear-gradient(180deg, rgba(245,241,230,0) 0%, rgba(245,241,230,0.96) 88%)",
+                  }}
+                />
+              )}
+            </div>
           ) : (
             <div
               ref={displayRef}
