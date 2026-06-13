@@ -251,6 +251,8 @@ export interface ForceGraphNode {
   type: string | null;
   /** Центр эго-графа — подсвечиваем крупнее/акцентом. */
   isCenter: boolean;
+  /** Число связей узла — для размера (хабы крупнее). */
+  degree: number;
 }
 
 export interface ForceGraphLink {
@@ -269,12 +271,18 @@ export function graphDataOf(
   edges: GraphEdge[],
   centerId?: string | null,
 ): ForceGraphData {
+  const degree = new Map<string, number>();
+  for (const e of edges) {
+    degree.set(e.from, (degree.get(e.from) ?? 0) + 1);
+    degree.set(e.to, (degree.get(e.to) ?? 0) + 1);
+  }
   return {
     nodes: nodes.map((n) => ({
       id: n.id,
       name: n.title || "Без названия",
       type: n.item_type,
       isCenter: !!centerId && n.id === centerId,
+      degree: degree.get(n.id) ?? 0,
     })),
     links: edges.map((e) => ({ source: e.from, target: e.to, value: e.weight })),
   };

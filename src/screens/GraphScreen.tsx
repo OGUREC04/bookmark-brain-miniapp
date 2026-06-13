@@ -4,7 +4,7 @@
    - full: полный граф по кнопке. Раскладку считает КЛИЕНТ (force-симуляция),
      координаты кэшируются на бэке (buildGraph); при наличии кэша рисуем сразу.
    Либа react-force-graph-2d (canvas — лёгкая для Telegram WebView). */
-import { useEffect, useRef, useState, useCallback, cloneElement } from "react";
+import { useEffect, useRef, useState, useCallback, useMemo, cloneElement } from "react";
 import ForceGraph2D from "react-force-graph-2d";
 import { Icons } from "../components/ds/icons";
 import { api } from "../lib/api";
@@ -17,6 +17,24 @@ type FGNode = ForceGraphData["nodes"][number] & {
   fx?: number;
   fy?: number;
 };
+
+/** Цвет узла по типу заметки (как типизированные аватары в ленте). Sage-семья. */
+const TYPE_COLOR: Record<string, string> = {
+  action: "#C08A5E", // задача — глина
+  thought: "#6E93B8", // идея — синий
+  content: "#7A9C7A", // контент — sage
+  reference: "#A88BA8", // референс — мов
+};
+const CENTER_COLOR = "#3C5A3C";
+const DEFAULT_NODE_COLOR = "#9DBE9D";
+function nodeColor(n: FGNode): string {
+  if (n.isCenter) return CENTER_COLOR;
+  return (n.type && TYPE_COLOR[n.type]) || DEFAULT_NODE_COLOR;
+}
+function nodeRadius(n: FGNode): number {
+  if (n.isCenter) return 7;
+  return 2.6 + Math.min(6, n.degree * 0.7); // хабы крупнее, одиночки мелкие
+}
 
 type FullState =
   | { phase: "idle" }
@@ -129,20 +147,52 @@ export function GraphScreen({
     }
   }, []);
 
-  // Раскладку (если считали клиентом) сохраняем на бэк после стабилизации симуляции.
-  const onEngineStop = useCallback(() => {
+  const data: ForceGraphData | null =
+    mode === "local" ? local : full.phase === "ready" ? full.data : null;
+  const loading =
+    (mode === "full" && full.phase === "loading") || (mode === "local" && !!centerId && !local);
+
+  // ── Интерактив: фокус на узле (тап → подсветка, повторный тап → открыть заметку) ──
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const fgRef = useRef<any>(null);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  useEffect(() => setFocusedId(null), [data]); // сброс фокуса при смене данных
+
+  // Соседи сфокусированного узла (для подсветки). Либа мутирует source/target в объекты.
+  const idOf = (e: unknown): string =>
+    typeof e === "object" && e ? (e as FGNode).id : (e as string);
+  const neighbors = useMemo(() => {
+    const s = new Set<string>();
+    if (!focusedId || !data) return s;
+    for (const l of data.links as { source: unknown; target: unknown }[]) {
+      const a = idOf(l.source);
+      const b = idOf(l.target);
+      if (a === focusedId) s.add(b);
+      else if (b === focusedId) s.add(a);
+    }
+    return s;
+  }, [focusedId, data]);
+
+  const handleNodeClick = useCallback(
+    (node: FGNode) => {
+      if (focusedId === node.id) onOpenNote(node.id); // повторный тап — открыть
+      else setFocusedId(node.id); // первый тап — фокус (подсветка + подпись)
+    },
+    [focusedId, onOpenNote],
+  );
+
+  // Сохранение раскладки (full) + авто-вписывание графа в экран после стабилизации.
+  const handleEngineStop = useCallback(() => {
+    fgRef.current?.zoomToFit(400, 36);
     setFull((s) => {
       if (s.phase !== "ready" || !s.needsSave) return s;
       const allNodes = s.data.nodes as FGNode[];
       const coords = allNodes
         .filter((n) => typeof n.x === "number" && typeof n.y === "number")
         .map((n) => ({ id: n.id, x: Math.round(n.x as number), y: Math.round(n.y as number) }));
-      // #2 (ревью): сохраняем только ПОЛНУЮ раскладку. Частичная (часть узлов без
-      // координат — ранний engine-stop) хуже отсутствия: на след. открытии эти узлы
-      // падают в origin. Не флипаем needsSave → дождёмся полной на следующем stop.
+      // #2 (ревью): сохраняем только ПОЛНУЮ раскладку (частичная роняет узлы в origin).
       if (allNodes.length === 0 || coords.length < allNodes.length) return s;
-      // #4 (ревью): после успешного сохранения снимаем stale — иначе баннер «устарел»
-      // висит даже после того, как юзер только что пересобрал граф.
+      // #4 (ревью): после сохранения снимаем stale — баннер «устарел» уходит.
       api
         .buildGraph(coords)
         .then(() => setFull((cur) => (cur.phase === "ready" ? { ...cur, stale: false } : cur)))
@@ -151,31 +201,65 @@ export function GraphScreen({
     });
   }, []);
 
+  // Развести узлы пошире (тесные кластеры) — тюним d3-силы после маунта графа.
+  useEffect(() => {
+    const fg = fgRef.current;
+    if (!fg || !data || dims.w === 0) return;
+    fg.d3Force?.("charge")?.strength(-60);
+    fg.d3Force?.("link")?.distance(38);
+    fg.d3ReheatSimulation?.();
+  }, [data, dims.w]);
+
   const drawNode = useCallback(
     (node: FGNode, ctx: CanvasRenderingContext2D, scale: number) => {
-      const r = node.isCenter ? 6 : 3.5;
+      const dimmed = !!focusedId && node.id !== focusedId && !neighbors.has(node.id);
+      const r = nodeRadius(node);
+      const x = node.x ?? 0;
+      const y = node.y ?? 0;
+      ctx.globalAlpha = dimmed ? 0.18 : 1;
       ctx.beginPath();
-      ctx.arc(node.x ?? 0, node.y ?? 0, r, 0, 2 * Math.PI);
-      ctx.fillStyle = node.isCenter ? "#5A7C5A" : "#9DBE9D";
+      ctx.arc(x, y, r, 0, 2 * Math.PI);
+      ctx.fillStyle = nodeColor(node);
       ctx.fill();
-      if (scale > 1.3 || node.isCenter) {
-        const label = node.name.length > 22 ? `${node.name.slice(0, 22)}…` : node.name;
-        ctx.font = `${node.isCenter ? 5 : 4}px Onest, sans-serif`;
-        ctx.fillStyle = "rgba(40,32,24,0.72)";
-        ctx.textAlign = "center";
-        ctx.fillText(label, node.x ?? 0, (node.y ?? 0) + r + 5);
+      if (node.id === focusedId) {
+        ctx.lineWidth = 1.2;
+        ctx.strokeStyle = CENTER_COLOR;
+        ctx.stroke();
       }
+      // Подпись: центр / фокус / сосед — всегда; остальные — на достаточном зуме.
+      const labelOn = node.isCenter || node.id === focusedId || neighbors.has(node.id) || scale > 0.85;
+      if (labelOn && !dimmed) {
+        const label = node.name.length > 22 ? `${node.name.slice(0, 22)}…` : node.name;
+        ctx.font = `${node.isCenter || node.id === focusedId ? 5.5 : 4.2}px Onest, sans-serif`;
+        ctx.fillStyle = "rgba(40,32,24,0.8)";
+        ctx.textAlign = "center";
+        ctx.fillText(label, x, y + r + 5.5);
+      }
+      ctx.globalAlpha = 1;
     },
-    [],
+    [focusedId, neighbors],
   );
 
-  const data: ForceGraphData | null =
-    mode === "local" ? local : full.phase === "ready" ? full.data : null;
-  const loading =
-    (mode === "full" && full.phase === "loading") || (mode === "local" && !!centerId && !local);
+  const linkColor = useCallback(
+    (l: { source: unknown; target: unknown }) => {
+      if (!focusedId) return "rgba(122,156,122,0.32)";
+      const on = idOf(l.source) === focusedId || idOf(l.target) === focusedId;
+      return on ? "rgba(90,124,90,0.6)" : "rgba(122,156,122,0.1)";
+    },
+    [focusedId],
+  );
 
   return (
-    <div style={{ height: "100vh", display: "flex", flexDirection: "column", paddingTop: "calc(4px + env(safe-area-inset-top,0))" }}>
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        paddingTop: "calc(4px + env(safe-area-inset-top,0))",
+        // В full-режиме снизу плавающее меню — отступ, чтобы граф не уходил под него.
+        paddingBottom: mode === "full" ? "calc(92px + env(safe-area-inset-bottom,0))" : 0,
+      }}
+    >
       {/* Без заголовка страницы (конвенция приложения — заголовков нет). В локальном
           режиме оставляем только кнопку назад. */}
       {onBack && (
@@ -226,22 +310,24 @@ export function GraphScreen({
         <div ref={wrapCb} style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {dims.w > 0 && (
             <ForceGraph2D
+              ref={fgRef}
               width={dims.w}
               height={dims.h}
               graphData={data}
               nodeId="id"
               backgroundColor="rgba(0,0,0,0)"
-              linkColor={() => "rgba(122,156,122,0.32)"}
+              linkColor={linkColor as never}
               linkWidth={(l) => 0.4 + ((l as { value?: number }).value ?? 0) * 0.8}
               nodeCanvasObject={drawNode as never}
               nodePointerAreaPaint={((node: FGNode, color: string, ctx: CanvasRenderingContext2D) => {
                 ctx.fillStyle = color;
                 ctx.beginPath();
-                ctx.arc(node.x ?? 0, node.y ?? 0, node.isCenter ? 9 : 7, 0, 2 * Math.PI);
+                ctx.arc(node.x ?? 0, node.y ?? 0, nodeRadius(node) + 3, 0, 2 * Math.PI);
                 ctx.fill();
               }) as never}
-              onNodeClick={((node: FGNode) => onOpenNote(node.id)) as never}
-              onEngineStop={onEngineStop}
+              onNodeClick={handleNodeClick as never}
+              onBackgroundClick={() => setFocusedId(null)}
+              onEngineStop={handleEngineStop}
             />
           )}
         </div>
