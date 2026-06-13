@@ -101,9 +101,15 @@ export function App() {
     [pushView],
   );
   // Заменить закладку открытой заметки (после мутации) — чтобы detail не был stale.
+  // id-guard: если юзер уже ушёл на другую заметку, протухший async-ответ (refetch/poll
+  // прошлой заметки) НЕ затирает текущую (race из code-review).
   const replaceDetail = useCallback((b: Bookmark) => {
     setStack((s) =>
-      s.map((l, i) => (i === s.length - 1 && l.kind === "detail" ? { kind: "detail", bookmark: b } : l)),
+      s.map((l, i) =>
+        i === s.length - 1 && l.kind === "detail" && l.bookmark.id === b.id
+          ? { kind: "detail", bookmark: b }
+          : l,
+      ),
     );
   }, []);
   // Перечитать открытую заметку с бэка (раздел #3: detail не должен показывать stale после
