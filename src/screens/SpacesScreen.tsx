@@ -135,7 +135,7 @@ export function SpacesScreen({ onOpen, onCreate }: { onOpen: (f: Folder) => void
   }, []);
 
   return (
-    <div style={{ padding: "12px 16px calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+    <div style={{ padding: "12px 16px calc(74px + env(safe-area-inset-bottom, 0px))" }}>
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
         {folders.map((f) => (
           <SpaceTile key={f.id} folder={f} onClick={() => onOpen(f)} />

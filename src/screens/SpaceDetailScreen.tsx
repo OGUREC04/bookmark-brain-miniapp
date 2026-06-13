@@ -78,7 +78,7 @@ export function SpaceDetailScreen({
   }
 
   return (
-    <div style={{ padding: "6px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+    <div style={{ padding: "6px 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
       {/* nav */}
       <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
         <button

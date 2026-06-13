@@ -132,7 +132,7 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
   }, [q, mode]);
 
   return (
-    <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+    <div style={{ padding: "4px 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
       {/* focused search field — X очищает / закрывает (back через системную кнопку тоже) */}
       <div style={{ padding: "0 16px", marginTop: 2, marginBottom: 14 }}>
         <div

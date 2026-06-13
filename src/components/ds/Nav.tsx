@@ -20,74 +20,67 @@ const ME: TabDef = { id: "me", label: "Я", icon: Icons.user };
 const tabsBase: TabDef[] = [MYSLI, SPACES, ME];
 const tabsWithGraph: TabDef[] = [MYSLI, SPACES, GRAPH, ME];
 
-function TabItem({
-  tab,
-  active,
-  onClick,
-}: {
-  tab: { id: NavTab; label: string; icon: React.ReactElement };
-  active: boolean;
-  onClick: () => void;
-}) {
+/** Иконка-таб без подписи (Instagram-стиль): активная — акцент + жирнее. */
+function NavIcon({ tab, active, onClick }: { tab: TabDef; active: boolean; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
       aria-label={tab.label}
       aria-current={active ? "page" : undefined}
       style={{
+        flex: 1,
         background: "transparent",
         border: "none",
         cursor: "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
+        height: 50,
         padding: 0,
-        minWidth: 0,
+        color: active ? "var(--brand-primary)" : "var(--fg-3)",
+        transition: "color 200ms var(--ease-out)",
+        WebkitTapHighlightColor: "transparent",
       }}
     >
-      <div
+      {cloneElement(tab.icon, { size: 25, sw: active ? 2.1 : 1.7 } as never)}
+    </button>
+  );
+}
+
+/** Кнопка «создать» — «+» по центру бара (как create в Instagram). */
+function CreateBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="создать"
+      style={{
+        flex: 1,
+        background: "transparent",
+        border: "none",
+        cursor: "pointer",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        height: 50,
+        padding: 0,
+        WebkitTapHighlightColor: "transparent",
+      }}
+    >
+      <span
         style={{
+          width: 34,
+          height: 34,
+          borderRadius: 11,
+          background: "var(--brand-primary)",
+          color: "var(--fg-on-brand)",
           display: "flex",
-          flexDirection: "column",
           alignItems: "center",
-          gap: 2,
-          padding: "6px 0",
-          background: "transparent",
-          color: active ? "var(--brand-primary)" : "var(--fg-3)",
-          transition: "color 220ms var(--ease-out)",
-          minWidth: 0,
-          maxWidth: "100%",
+          justifyContent: "center",
+          boxShadow: "0 2px 8px rgba(122,156,122,0.35)",
         }}
       >
-        <span
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            height: 20,
-            width: 20,
-            flexShrink: 0,
-          }}
-        >
-          {cloneElement(tab.icon, { size: 20, sw: active ? 1.8 : 1.6 } as never)}
-        </span>
-        <span
-          style={{
-            fontFamily: "var(--font-ui)",
-            fontSize: 10,
-            fontWeight: active ? 600 : 500,
-            letterSpacing: "-0.005em",
-            lineHeight: 1.1,
-            color: "inherit",
-            whiteSpace: "nowrap",
-            maxWidth: "100%",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-          }}
-        >
-          {tab.label}
-        </span>
-      </div>
+        {cloneElement(Icons.plus, { size: 20, sw: 2.2 } as never)}
+      </span>
     </button>
   );
 }
@@ -105,75 +98,37 @@ export function BottomNav({
   showGraph?: boolean;
 }) {
   const tabs = showGraph ? tabsWithGraph : tabsBase;
+  // «+» (создать) — по центру бара (Instagram-стиль): слева половина табов, потом +, потом остальные.
+  const mid = Math.ceil(tabs.length / 2);
+  const left = tabs.slice(0, mid);
+  const right = tabs.slice(mid);
   return (
-    <div
+    <nav
       style={{
         position: "fixed",
-        left: 14,
-        right: 14,
-        bottom: "calc(22px + env(safe-area-inset-bottom, 0px))",
+        left: 0,
+        right: 0,
+        bottom: 0,
         zIndex: 50,
+        background: "rgba(255,252,246,0.94)",
+        backdropFilter: "blur(24px) saturate(180%)",
+        WebkitBackdropFilter: "blur(24px) saturate(180%)",
+        borderTop: "1px solid var(--border-1)",
+        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         display: "flex",
         alignItems: "center",
-        gap: 12,
-        pointerEvents: "none",
+        justifyContent: "space-around",
+        padding: "0 8px",
+        paddingBlock: "2px",
       }}
     >
-      <div
-        style={{
-          flex: 1,
-          pointerEvents: "auto",
-          background: "rgba(255,252,246,0.78)",
-          backdropFilter: "blur(28px) saturate(180%)",
-          WebkitBackdropFilter: "blur(28px) saturate(180%)",
-          border: "1px solid rgba(255,255,255,0.7)",
-          borderRadius: 24,
-          display: "grid",
-          // minmax(0,1fr): строго равные доли, не раздуваются под длинный
-          // неразрывный лейбл («пространства») и не прыгают при смене актив-таба.
-          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
-          padding: "6px 4px",
-          boxShadow:
-            "0 1px 0 rgba(255,255,255,0.7) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 16px 40px rgba(60,40,25,0.12)",
-        }}
-      >
-        {tabs.map((t) => (
-          <TabItem key={t.id} tab={t} active={current === t.id} onClick={() => onChange(t.id)} />
-        ))}
-      </div>
-
-      <button
-        onClick={onFab}
-        aria-label="создать"
-        style={{
-          pointerEvents: "auto",
-          width: 48,
-          height: 48,
-          borderRadius: "50%",
-          background: "var(--brand-primary)",
-          color: "var(--fg-on-brand)",
-          border: "none",
-          cursor: "pointer",
-          flexShrink: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          boxShadow:
-            "0 1px 0 rgba(255,255,255,0.25) inset, 0 6px 18px rgba(122,156,122,0.4), 0 2px 6px rgba(60,40,25,0.18)",
-          transition: "transform 160ms var(--ease-out)",
-        }}
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = "translateY(1px)";
-        }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "translateY(0)";
-        }}
-      >
-        {cloneElement(Icons.plus, { size: 22, sw: 2 } as never)}
-      </button>
-    </div>
+      {left.map((t) => (
+        <NavIcon key={t.id} tab={t} active={current === t.id} onClick={() => onChange(t.id)} />
+      ))}
+      <CreateBtn onClick={onFab} />
+      {right.map((t) => (
+        <NavIcon key={t.id} tab={t} active={current === t.id} onClick={() => onChange(t.id)} />
+      ))}
+    </nav>
   );
 }

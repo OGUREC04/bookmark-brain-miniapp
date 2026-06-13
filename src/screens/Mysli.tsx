@@ -281,7 +281,7 @@ export function MysliScreen({
   };
 
   return (
-    <div style={{ padding: "0 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
+    <div style={{ padding: "0 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
       {/* sticky — ТОЛЬКО строка поиска + колокольчик: при скролле ленты она
           остаётся плавающей вверху (frosted-фон), а чипы уезжают под неё. */}
       <div
