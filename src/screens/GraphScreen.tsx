@@ -72,16 +72,21 @@ export function GraphScreen({
   onBack?: () => void;
   onOpenNote: (id: string) => void;
 }) {
-  const wrapRef = useRef<HTMLDivElement | null>(null);
   const [dims, setDims] = useState({ w: 0, h: 0 });
-  useEffect(() => {
-    const el = wrapRef.current;
+  const roRef = useRef<ResizeObserver | null>(null);
+  // Callback-ref, А НЕ useRef+useEffect([]): контейнер графа рендерится УСЛОВНО (только
+  // после «Построить граф» / загрузки local). useEffect([]) мерил бы ref на маунте, когда
+  // div ещё нет → dims остаются {0,0} → ForceGraph2D (гейт dims.w>0) не рисуется (пустой
+  // экран — баг из ревью на устройстве). Callback-ref срабатывает ровно когда div появляется.
+  const wrapCb = useCallback((el: HTMLDivElement | null) => {
+    roRef.current?.disconnect();
+    roRef.current = null;
     if (!el) return;
     const measure = () => setDims({ w: el.clientWidth, h: el.clientHeight });
     measure();
     const ro = new ResizeObserver(measure);
     ro.observe(el);
-    return () => ro.disconnect();
+    roRef.current = ro;
   }, []);
 
   // ── local (эго-граф вокруг заметки) ──
@@ -171,16 +176,15 @@ export function GraphScreen({
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", paddingTop: "calc(4px + env(safe-area-inset-top,0))" }}>
-      <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 8 }}>
-        {onBack && (
+      {/* Без заголовка страницы (конвенция приложения — заголовков нет). В локальном
+          режиме оставляем только кнопку назад. */}
+      {onBack && (
+        <div style={{ padding: "0 16px", display: "flex", alignItems: "center", marginBottom: 8 }}>
           <button onClick={onBack} aria-label="назад" style={navBtn}>
             {cloneElement(Icons.back, { size: 16, sw: 1.6 } as never)}
           </button>
-        )}
-        <h1 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, fontSize: 22, color: "var(--fg-1)", margin: 0, letterSpacing: "-0.01em" }}>
-          {mode === "local" ? "Связи заметки" : "Граф связей"}
-        </h1>
-      </div>
+        </div>
+      )}
 
       {mode === "full" && full.phase === "ready" && full.stale && (
         <div style={{ margin: "0 16px 8px", padding: "8px 12px", borderRadius: 12, background: "rgba(234,227,207,0.6)", display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10 }}>
@@ -219,7 +223,7 @@ export function GraphScreen({
       )}
 
       {data && data.nodes.length > 0 && (
-        <div ref={wrapRef} style={{ flex: 1, minHeight: 0, position: "relative" }}>
+        <div ref={wrapCb} style={{ flex: 1, minHeight: 0, position: "relative" }}>
           {dims.w > 0 && (
             <ForceGraph2D
               width={dims.w}
