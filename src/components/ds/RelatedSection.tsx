@@ -17,6 +17,7 @@ export function RelatedSection({
   showingAll,
   onOpen,
   onShowAll,
+  onOpenGraph,
 }: {
   rows: RelatedRow[];
   /** Истинное число связей (для бейджа). */
@@ -24,6 +25,8 @@ export function RelatedSection({
   showingAll: boolean;
   onOpen: (id: string) => void;
   onShowAll: () => void;
+  /** Открыть локальный граф вокруг заметки (иконка в шапке). undefined — кнопки нет. */
+  onOpenGraph?: () => void;
 }) {
   if (total === 0 || rows.length === 0) return null;
   const canExpand = !showingAll && total > rows.length;
@@ -57,25 +60,46 @@ export function RelatedSection({
             {total}
           </span>
         </span>
-        {canExpand && (
-          <button
-            type="button"
-            onClick={onShowAll}
-            style={{
-              background: "transparent",
-              border: "none",
-              padding: "2px 0",
-              color: "var(--brand-primary)",
-              fontFamily: "var(--font-ui)",
-              fontSize: 13,
-              fontWeight: 500,
-              cursor: "pointer",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            Посмотреть все
-          </button>
-        )}
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          {canExpand && (
+            <button
+              type="button"
+              onClick={onShowAll}
+              style={{
+                background: "transparent",
+                border: "none",
+                padding: "2px 0",
+                color: "var(--brand-primary)",
+                fontFamily: "var(--font-ui)",
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              Посмотреть все
+            </button>
+          )}
+          {onOpenGraph && (
+            <button
+              type="button"
+              aria-label="граф связей"
+              onClick={onOpenGraph}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                color: "var(--brand-primary)",
+                cursor: "pointer",
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              {cloneElement(Icons.graph, { size: 17, sw: 1.7 } as never)}
+            </button>
+          )}
+        </span>
       </div>
 
       <div style={{ borderTop: "0.5px solid var(--border-1)" }}>

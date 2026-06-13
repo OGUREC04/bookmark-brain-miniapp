@@ -1,6 +1,6 @@
 // Bookmark (backend) → UI-адаптеры (ChatRow / Card / detail). См. frontend/README.md.
 
-import type { Bookmark } from "./api";
+import type { Bookmark, GraphNode, GraphEdge } from "./api";
 import type { ThoughtKind, TaskProgress } from "./types";
 import { formatRelativeDate } from "./formatters";
 import { tagStop } from "./tagPalette";
@@ -239,4 +239,43 @@ export function deriveTaskProgress(b: Bookmark): TaskProgress | null {
   const tasks = sd.tasks ?? [];
   const done = tasks.filter((t) => t.done).length;
   return { done, total: tasks.length };
+}
+
+// ─── Граф связей (Connections Phase 5A) ───
+// ЕДИНСТВЕННАЯ точка трансформации бэк-формата (ребро `from`/`to`) в формат
+// либы графа (`source`/`target`). Компоненты графа работают только с этим.
+
+export interface ForceGraphNode {
+  id: string;
+  name: string;
+  type: string | null;
+  /** Центр эго-графа — подсвечиваем крупнее/акцентом. */
+  isCenter: boolean;
+}
+
+export interface ForceGraphLink {
+  source: string;
+  target: string;
+  value: number; // вес связи (для толщины ребра)
+}
+
+export interface ForceGraphData {
+  nodes: ForceGraphNode[];
+  links: ForceGraphLink[];
+}
+
+export function graphDataOf(
+  nodes: GraphNode[],
+  edges: GraphEdge[],
+  centerId?: string | null,
+): ForceGraphData {
+  return {
+    nodes: nodes.map((n) => ({
+      id: n.id,
+      name: n.title || "Без названия",
+      type: n.item_type,
+      isCenter: !!centerId && n.id === centerId,
+    })),
+    links: edges.map((e) => ({ source: e.from, target: e.to, value: e.weight })),
+  };
 }

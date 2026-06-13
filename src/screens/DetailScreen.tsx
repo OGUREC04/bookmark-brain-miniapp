@@ -44,6 +44,7 @@ export function DetailScreen({
   onToast,
   onSaveText,
   onOpenRelated,
+  onOpenGraph,
 }: {
   bookmark: Bookmark;
   onBack: () => void;
@@ -56,6 +57,8 @@ export function DetailScreen({
   onSaveText?: (rawText: string) => Promise<void>;
   /** FLAGS.CONNECTIONS: открыть связанную заметку по id. undefined = секция «Связано» выключена. */
   onOpenRelated?: (id: string) => void;
+  /** FLAGS.CONNECTIONS: открыть локальный граф вокруг этой заметки. */
+  onOpenGraph?: () => void;
 }) {
   const host = bookmark.url ? hostOf(bookmark.url) : null;
   const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "Без названия";
@@ -355,6 +358,7 @@ export function DetailScreen({
             showingAll={showAllRelated}
             onOpen={onOpenRelated}
             onShowAll={() => setShowAllRelated(true)}
+            onOpenGraph={onOpenGraph}
           />
         )}
 

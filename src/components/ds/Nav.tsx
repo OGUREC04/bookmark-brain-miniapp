@@ -6,13 +6,19 @@
 import { cloneElement } from "react";
 import { Icons, ExtraIcons } from "./icons";
 
-export type NavTab = "mysli" | "spaces" | "me";
+export type NavTab = "mysli" | "spaces" | "graph" | "me";
 
-const tabs: { id: NavTab; label: string; icon: React.ReactElement }[] = [
-  { id: "mysli", label: "Мысли", icon: ExtraIcons.thoughts },
-  { id: "spaces", label: "Пространства", icon: ExtraIcons.spaces },
-  { id: "me", label: "Я", icon: Icons.user },
-];
+type TabDef = { id: NavTab; label: string; icon: React.ReactElement };
+
+const MYSLI: TabDef = { id: "mysli", label: "Мысли", icon: ExtraIcons.thoughts };
+const SPACES: TabDef = { id: "spaces", label: "Пространства", icon: ExtraIcons.spaces };
+const GRAPH: TabDef = { id: "graph", label: "Граф", icon: Icons.graph };
+const ME: TabDef = { id: "me", label: "Я", icon: Icons.user };
+
+// Таб «Граф» виден только при включённых связях (showGraph) — флаг знает App,
+// ds-слой его не импортит.
+const tabsBase: TabDef[] = [MYSLI, SPACES, ME];
+const tabsWithGraph: TabDef[] = [MYSLI, SPACES, GRAPH, ME];
 
 function TabItem({
   tab,
@@ -90,11 +96,15 @@ export function BottomNav({
   current,
   onChange,
   onFab,
+  showGraph = false,
 }: {
   current: NavTab;
   onChange: (t: NavTab) => void;
   onFab: () => void;
+  /** Показывать таб «Граф» (FLAGS.CONNECTIONS — знает App). */
+  showGraph?: boolean;
 }) {
+  const tabs = showGraph ? tabsWithGraph : tabsBase;
   return (
     <div
       style={{
@@ -119,9 +129,9 @@ export function BottomNav({
           border: "1px solid rgba(255,255,255,0.7)",
           borderRadius: 24,
           display: "grid",
-          // minmax(0,1fr): строго равные трети, не раздуваются под длинный
+          // minmax(0,1fr): строго равные доли, не раздуваются под длинный
           // неразрывный лейбл («пространства») и не прыгают при смене актив-таба.
-          gridTemplateColumns: "repeat(3, minmax(0, 1fr))",
+          gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))`,
           padding: "6px 4px",
           boxShadow:
             "0 1px 0 rgba(255,255,255,0.7) inset, 0 -1px 0 rgba(0,0,0,0.04) inset, 0 16px 40px rgba(60,40,25,0.12)",

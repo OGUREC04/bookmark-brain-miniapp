@@ -13,6 +13,7 @@ import { SpacesScreen } from "./screens/SpacesScreen";
 import { MeScreen } from "./screens/MeScreen";
 import { DetailScreen } from "./screens/DetailScreen";
 import { SpaceDetailScreen } from "./screens/SpaceDetailScreen";
+import { GraphScreen } from "./screens/GraphScreen";
 import {
   ActionSheet,
   RemindersSheet,
@@ -40,7 +41,9 @@ type RemRow = {
 type ViewLayer =
   | { kind: "search" }
   | { kind: "space"; space: Folder }
-  | { kind: "detail"; bookmark: Bookmark };
+  | { kind: "detail"; bookmark: Bookmark }
+  // FLAGS.CONNECTIONS: локальный эго-граф вокруг заметки (открыт из «Связано»).
+  | { kind: "graph"; center: string };
 
 type Sheet =
   | { type: "action"; target: SheetTarget; bookmark: Bookmark }
@@ -265,6 +268,15 @@ export function App() {
     [runAction, openDetail],
   );
 
+  // FLAGS.CONNECTIONS: открыть локальный эго-граф вокруг заметки (из «Связано»).
+  const openGraph = useCallback(
+    (centerId: string) => {
+      hapticImpact("light");
+      pushView({ kind: "graph", center: centerId });
+    },
+    [pushView],
+  );
+
   const onTab = stack.length === 0;
 
   return (
@@ -285,9 +297,11 @@ export function App() {
             ? `d-${top.bookmark.id}`
             : top?.kind === "space"
               ? `sp-${top.space.id}`
-              : top?.kind === "search"
-                ? "search"
-                : tab
+              : top?.kind === "graph"
+                ? `g-${top.center}`
+                : top?.kind === "search"
+                  ? "search"
+                  : tab
         }
         className="screen-fade"
       >
@@ -313,6 +327,7 @@ export function App() {
                 : undefined
             }
             onOpenRelated={FLAGS.CONNECTIONS ? openRelated : undefined}
+            onOpenGraph={FLAGS.CONNECTIONS ? () => openGraph(top.bookmark.id) : undefined}
           />
         ) : top?.kind === "space" ? (
           <SpaceDetailScreen
@@ -321,6 +336,8 @@ export function App() {
             onOpenNote={openDetail}
             onMore={openActions}
           />
+        ) : top?.kind === "graph" ? (
+          <GraphScreen mode="local" centerId={top.center} onBack={popView} onOpenNote={openRelated} />
         ) : top?.kind === "search" ? (
           <SearchScreen onBack={popView} onOpen={openDetail} />
         ) : tab === "mysli" ? (
@@ -333,6 +350,8 @@ export function App() {
           />
         ) : tab === "spaces" ? (
           <SpacesScreen onOpen={openSpace} onCreate={comingSoon} />
+        ) : tab === "graph" ? (
+          <GraphScreen mode="full" onOpenNote={openRelated} />
         ) : (
           <MeScreen onComingSoon={comingSoon} />
         )}
@@ -341,6 +360,7 @@ export function App() {
       {onTab && (
         <BottomNav
           current={tab}
+          showGraph={FLAGS.CONNECTIONS}
           onChange={(t) => {
             hapticImpact("light");
             setTab(t);
