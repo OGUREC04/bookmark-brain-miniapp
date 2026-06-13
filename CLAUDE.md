@@ -132,6 +132,16 @@ Telegram WebView (нужен hard-close).
 в `ReminderPickerSheet`, inline-редактор тела текста в `DetailScreen` (textarea + «Изменить/Готово»,
 состояние переобработки по `ai_status`). E2E-проверено при флаге=true, зашипано при false.
 
+**Connections (Phase 5A) — связи между заметками** (2026-06-14, за `FLAGS.CONNECTIONS`): бэк-слой
+связей в main (не на проде). Фронт сделан целиком: api-методы (`getRelated`/`getGraph*`/`buildGraph`
++ `search` mode), секция «Связано» в `DetailScreen` (`RelatedSection`), семантический режим поиска
+(тоггл в `SearchScreen`), таб «Граф» (`GraphScreen` на `react-force-graph-2d` — локальный эго-граф
+из «Связано» + полный по кнопке с кэшем раскладки и баннером устаревания). Единственная точка
+трансформации графа — `adapters.graphDataOf` (ребро `from/to` → `source/target`). Nav: таб «Граф»
+под `showGraph` (ds не импортит FLAGS — проп от App). **Новая зависимость:** `react-force-graph-2d`
+(canvas, +~190KB; за флагом, можно code-split). Брифы: монорепо `docs/prd/CONNECTIONS-MINIAPP.md`,
+БТ `docs/requirements/бт-11-связи.md`. 2 code-review пройдено. **Включить флаг — после прод-деплоя бэка.**
+
 **Остаётся (next, см. лог):** recurrence «Повторять» (тикет `8r4`, P3 бэклог, +бэк). Бэклог:
 создание пространства (`8g1`); SuggestionCard (`ntn`); facet-чипы (`0u7`); медиа QuickCreate
 (`ti0`); контекст ссылок — бэк (`z9q`). _ActionSheet close: решено — «Закрыть» зелёным текстом._
