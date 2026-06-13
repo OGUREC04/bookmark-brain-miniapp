@@ -35,10 +35,14 @@ npm run build      # tsc (строгий) + vite build — прод-сборка
 
 ## 4 решения, которые НЕЛЬЗЯ ломать по незнанию
 
-1. **Навигация state-driven, роутера НЕТ.** Навигация = `useState` в `App.tsx`
-   (`tab`/`searchOpen`/`detail`/`sheet`). `react-router` удалён намеренно — Telegram WebView
-   плохо живёт с history API на iOS. Новый экран = новая ветка в state-машине `App.tsx`,
-   не `<Routes>`. Telegram `BackButton` подключён вручную в `App.tsx`.
+1. **Навигация state-driven, роутера НЕТ.** Навигация = `useState` в `App.tsx`:
+   `tab` (базовая вкладка) + `stack: ViewLayer[]` (СТЕК слоёв над вкладкой: search/space/detail)
+   + `sheet` (модалки поверх всего). `react-router` удалён намеренно — Telegram WebView плохо
+   живёт с history API на iOS. **Единый источник приоритета:** верх стека (`top`) рендерится;
+   back снимает `sheet`, иначе `popView()`. Новый экран-слой = новый вариант `ViewLayer`
+   (не дублировать приоритет в render/BackButton/nav-visibility, как было до рефактора ntn).
+   Telegram `BackButton` подключён вручную (show/hide завязаны на `overlayOpen`, обработчик
+   через ref — иначе мигал при sheet-over-detail).
 
 2. **`components/ds/*` — залоченный 1:1 порт дизайн-системы с inline-стилями.** Это НАМЕРЕННО,
    не техдолг. Не рефактори inline → CSS-классы, не «причёсывай». Меняешь визуал → сначала

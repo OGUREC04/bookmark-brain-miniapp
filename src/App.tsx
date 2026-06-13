@@ -1,5 +1,10 @@
 /* Mini App shell — state-driven, DS-faithful (no router; one frame + sheets).
-   Ported IA from docs/design-system-miniapp. */
+   Ported IA from docs/design-system-miniapp.
+
+   Навигация = СТЕК слоёв над базовой вкладкой (`view`), + модальные `sheet` поверх.
+   Единый источник приоритета: верх стека рендерится, back снимает sheet → потом слой.
+   Раньше приоритет дублировался руками в 3 местах (render / BackButton / nav-visibility)
+   — ловушка для нового dev. Теперь — один `top`/`popView`. */
 import { useCallback, useEffect, useRef, useState } from "react";
 import { BottomNav, type NavTab } from "./components/ds/Nav";
 import { MysliScreen } from "./screens/Mysli";
@@ -31,6 +36,12 @@ type RemRow = {
   payload?: Record<string, unknown> | null;
 };
 
+/** Слой навигации над базовой вкладкой. Пустой стек = базовая вкладка (tab). */
+type ViewLayer =
+  | { kind: "search" }
+  | { kind: "space"; space: Folder }
+  | { kind: "detail"; bookmark: Bookmark };
+
 type Sheet =
   | { type: "action"; target: SheetTarget; bookmark: Bookmark }
   | { type: "reminders" }
@@ -42,12 +53,14 @@ type Sheet =
 
 export function App() {
   const [tab, setTab] = useState<NavTab>("mysli");
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [detail, setDetail] = useState<Bookmark | null>(null);
-  const [space, setSpace] = useState<Folder | null>(null);
+  const [stack, setStack] = useState<ViewLayer[]>([]);
   const [sheet, setSheet] = useState<Sheet>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+
+  const top = stack.length > 0 ? stack[stack.length - 1] : null;
+  // Закладка открытой заметки (верх стека = detail) — для эффектов/экшенов.
+  const detailBookmark = top?.kind === "detail" ? top.bookmark : null;
 
   // "В разработке" stub for actions without backend yet.
   const comingSoon = useCallback(() => {
@@ -69,6 +82,43 @@ export function App() {
 
   const reload = useCallback(() => setReloadKey((k) => k + 1), []);
   const closeSheet = useCallback(() => setSheet(null), []);
+
+  // ── Навигация (стек) ───────────────────────────────────────────────
+  const pushView = useCallback((layer: ViewLayer) => setStack((s) => [...s, layer]), []);
+  const popView = useCallback(() => setStack((s) => s.slice(0, -1)), []);
+  const openDetail = useCallback(
+    (b: Bookmark) => {
+      hapticImpact("light");
+      pushView({ kind: "detail", bookmark: b });
+    },
+    [pushView],
+  );
+  const openSpace = useCallback(
+    (f: Folder) => {
+      hapticImpact("light");
+      pushView({ kind: "space", space: f });
+    },
+    [pushView],
+  );
+  // Заменить закладку открытой заметки (после мутации) — чтобы detail не был stale.
+  const replaceDetail = useCallback((b: Bookmark) => {
+    setStack((s) =>
+      s.map((l, i) => (i === s.length - 1 && l.kind === "detail" ? { kind: "detail", bookmark: b } : l)),
+    );
+  }, []);
+  // Перечитать открытую заметку с бэка (раздел #3: detail не должен показывать stale после
+  // звезды/перемещения/правки списка из ⋮-меню поверх него).
+  const refreshDetail = useCallback(
+    async (id: string) => {
+      try {
+        const fresh = await api.getBookmark(id);
+        replaceDetail(fresh);
+      } catch {
+        /* не критично — лента всё равно перезагрузится */
+      }
+    },
+    [replaceDetail],
+  );
 
   /**
    * Runs a mutating API action with uniform error handling: on success →
@@ -142,41 +192,42 @@ export function App() {
     };
   }, [sheet]);
 
-  // Telegram BackButton: native back closes search / any open sheet.
+  // Telegram BackButton: единый источник — back снимает sheet, иначе верхний слой стека.
+  // Показ/скрытие завязаны ТОЛЬКО на булев `overlayOpen` (не на каждое изменение state),
+  // а сам обработчик читается через ref — иначе кнопка мигала при открытии sheet поверх
+  // detail (раздел #2 flicker: смена deps пересоздавала show/hide).
+  const overlayOpen = sheet !== null || stack.length > 0;
+  const backActionRef = useRef<() => void>(() => {});
+  backActionRef.current = () => {
+    if (sheet !== null) setSheet(null);
+    else if (stack.length > 0) popView();
+  };
   useEffect(() => {
     const back = getBackButton();
     if (!back) return;
-    const overlayOpen = searchOpen || detail !== null || space !== null || sheet !== null;
-    if (overlayOpen) {
-      back.show();
-      const onBack = () => {
-        if (sheet !== null) setSheet(null);
-        else if (detail !== null) setDetail(null);
-        else if (space !== null) setSpace(null);
-        else setSearchOpen(false);
-      };
-      back.onClick(onBack);
-      return () => {
-        back.offClick(onBack);
-        back.hide();
-      };
+    if (!overlayOpen) {
+      back.hide();
+      return;
     }
-    back.hide();
-  }, [searchOpen, detail, space, sheet]);
+    back.show();
+    const onClick = () => backActionRef.current();
+    back.onClick(onClick);
+    return () => back.offClick(onClick);
+  }, [overlayOpen]);
 
   // FLAGS.TEXT_EDIT (тикет 0rn): пока открытая заметка обрабатывается AI (после правки текста
   // или свежее сохранение) — поллим, пока ai_status не станет терминальным, и обновляем detail.
   useEffect(() => {
-    if (!FLAGS.TEXT_EDIT || !detail) return;
-    const working = detail.ai_status === "pending" || detail.ai_status === "processing";
+    if (!FLAGS.TEXT_EDIT || !detailBookmark) return;
+    const working = detailBookmark.ai_status === "pending" || detailBookmark.ai_status === "processing";
     if (!working) return;
     let cancelled = false;
-    const id = detail.id;
+    const id = detailBookmark.id;
     const timer = setInterval(async () => {
       try {
         const fresh = await api.getBookmark(id);
         if (cancelled) return;
-        setDetail((prev) => (prev && prev.id === fresh.id ? fresh : prev));
+        replaceDetail(fresh);
         if (fresh.ai_status !== "pending" && fresh.ai_status !== "processing") {
           clearInterval(timer);
           reload();
@@ -189,17 +240,15 @@ export function App() {
       cancelled = true;
       clearInterval(timer);
     };
-  }, [detail?.id, detail?.ai_status]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailBookmark?.id, detailBookmark?.ai_status]);
 
   const openActions = useCallback((b: Bookmark) => {
     hapticImpact("medium");
     setSheet({ type: "action", target: targetOf(b), bookmark: b });
   }, []);
 
-  const openDetail = useCallback((b: Bookmark) => {
-    hapticImpact("light");
-    setDetail(b);
-  }, []);
+  const onTab = stack.length === 0;
 
   return (
     <div
@@ -209,64 +258,69 @@ export function App() {
         // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
         overflowX: "clip",
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
-        background: detail ? "var(--backdrop-gradient, var(--bg-page))" : "var(--bg-page)",
+        background: top?.kind === "detail" ? "var(--backdrop-gradient, var(--bg-page))" : "var(--bg-page)",
       }}
       className="app-shell"
     >
       <div
-        key={detail ? `d-${detail.id}` : space ? `sp-${space.id}` : searchOpen ? "search" : tab}
+        key={
+          top?.kind === "detail"
+            ? `d-${top.bookmark.id}`
+            : top?.kind === "space"
+              ? `sp-${top.space.id}`
+              : top?.kind === "search"
+                ? "search"
+                : tab
+        }
         className="screen-fade"
       >
-        {detail ? (
+        {top?.kind === "detail" ? (
           <DetailScreen
-            bookmark={detail}
-            onBack={() => setDetail(null)}
-            onMore={() => openActions(detail)}
-            onChanged={reload}
+            bookmark={top.bookmark}
+            onBack={popView}
+            onMore={() => openActions(top.bookmark)}
+            onChanged={() => {
+              reload();
+              void refreshDetail(top.bookmark.id);
+            }}
             onToast={setToast}
             // FLAGS.TEXT_EDIT (тикет 0rn): сохранить тело текста → refetch (ai_status может
             // переключиться в processing) → обновить detail и ленту.
             onSaveText={
               FLAGS.TEXT_EDIT
                 ? async (rawText: string) => {
-                    const updated = await api.updateBookmarkText(detail.id, rawText);
-                    setDetail(updated);
+                    const updated = await api.updateBookmarkText(top.bookmark.id, rawText);
+                    replaceDetail(updated);
                     reload();
                   }
                 : undefined
             }
           />
-        ) : space ? (
+        ) : top?.kind === "space" ? (
           <SpaceDetailScreen
-            space={space}
-            onBack={() => setSpace(null)}
+            space={top.space}
+            onBack={popView}
             onOpenNote={openDetail}
             onMore={openActions}
           />
-        ) : searchOpen ? (
-          <SearchScreen onBack={() => setSearchOpen(false)} onOpen={comingSoon} />
+        ) : top?.kind === "search" ? (
+          <SearchScreen onBack={popView} onOpen={openDetail} />
         ) : tab === "mysli" ? (
           <MysliScreen
             reloadKey={reloadKey}
-            onSearch={() => setSearchOpen(true)}
+            onSearch={() => pushView({ kind: "search" })}
             onBell={() => setSheet({ type: "reminders" })}
             onMore={openActions}
             onOpen={openDetail}
           />
         ) : tab === "spaces" ? (
-          <SpacesScreen
-            onOpen={(f) => {
-              hapticImpact("light");
-              setSpace(f);
-            }}
-            onCreate={comingSoon}
-          />
+          <SpacesScreen onOpen={openSpace} onCreate={comingSoon} />
         ) : (
           <MeScreen onComingSoon={comingSoon} />
         )}
       </div>
 
-      {!searchOpen && !detail && !space && (
+      {onTab && (
         <BottomNav
           current={tab}
           onChange={(t) => {
@@ -290,6 +344,8 @@ export function App() {
               await api.toggleFavorite(sheet.bookmark.id, !sheet.bookmark.is_favorite);
               closeSheet();
               reload();
+              // #3: если звёздочку жали из ⋮ поверх открытой заметки — обновить её.
+              if (detailBookmark?.id === sheet.bookmark.id) void refreshDetail(sheet.bookmark.id);
             })
           }
           onMove={() => setSheet({ type: "moveToSpace", bookmark: sheet.bookmark })}
@@ -298,6 +354,8 @@ export function App() {
               await api.deleteBookmark(sheet.bookmark.id);
               closeSheet();
               reload();
+              // #3: удалили открытую заметку — снять её со стека (объекта больше нет).
+              if (detailBookmark?.id === sheet.bookmark.id) popView();
             })
           }
         />
@@ -368,6 +426,7 @@ export function App() {
               await api.addBookmarkToFolder(folderId, sheet.bookmark.id);
               closeSheet();
               reload();
+              if (detailBookmark?.id === sheet.bookmark.id) void refreshDetail(sheet.bookmark.id);
             })
           }
           onCreate={comingSoon}

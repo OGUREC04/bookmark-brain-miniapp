@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, cloneElement } from "react";
 import { Icons } from "../components/ds/icons";
 import { Glyph, EmptyState } from "../components/ds/atoms";
-import { api, type SearchResult as ApiResult } from "../lib/api";
+import { api, type SearchResult as ApiResult, type Bookmark } from "../lib/api";
 import { hostOf, titleOf } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
 
@@ -88,7 +88,7 @@ function SearchResultCard({
   );
 }
 
-export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (id: string) => void }) {
+export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (b: Bookmark) => void }) {
   const [q, setQ] = useState("");
   const [results, setResults] = useState<ApiResult[]>([]);
   const [summary, setSummary] = useState<string | null>(null);
@@ -252,7 +252,7 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
               time={formatRelativeDate(r.bookmark.created_at)}
               title={titleOf(r.bookmark)}
               summary={r.bookmark.summary || ""}
-              onClick={() => onOpen(r.bookmark.id)}
+              onClick={() => onOpen(r.bookmark)}
             />
           ))}
         </div>
