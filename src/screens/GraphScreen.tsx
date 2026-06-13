@@ -27,6 +27,14 @@ const TYPE_COLOR: Record<string, string> = {
 };
 const CENTER_COLOR = "#3C5A3C";
 const DEFAULT_NODE_COLOR = "#9DBE9D";
+/** Легенда: тип → подпись + цвет (порядок показа). */
+const LEGEND: [type: string, label: string, color: string][] = [
+  ["action", "задача", TYPE_COLOR.action],
+  ["thought", "идея", TYPE_COLOR.thought],
+  ["content", "контент", TYPE_COLOR.content],
+  ["reference", "референс", TYPE_COLOR.reference],
+  ["__other", "прочее", DEFAULT_NODE_COLOR],
+];
 function nodeColor(n: FGNode): string {
   if (n.isCenter) return CENTER_COLOR;
   return (n.type && TYPE_COLOR[n.type]) || DEFAULT_NODE_COLOR;
@@ -181,9 +189,16 @@ export function GraphScreen({
     [focusedId, onOpenNote],
   );
 
+  // Какие типы реально есть в графе — для легенды (не показываем лишние цвета).
+  const presentTypes = useMemo(() => {
+    const s = new Set<string>();
+    for (const n of data?.nodes ?? []) s.add(n.type && TYPE_COLOR[n.type] ? n.type : "__other");
+    return s;
+  }, [data]);
+
   // Сохранение раскладки (full) + авто-вписывание графа в экран после стабилизации.
   const handleEngineStop = useCallback(() => {
-    fgRef.current?.zoomToFit(400, 36);
+    fgRef.current?.zoomToFit?.(420, 48);
     setFull((s) => {
       if (s.phase !== "ready" || !s.needsSave) return s;
       const allNodes = s.data.nodes as FGNode[];
@@ -201,13 +216,17 @@ export function GraphScreen({
     });
   }, []);
 
-  // Развести узлы пошире (тесные кластеры) — тюним d3-силы после маунта графа.
+  // Тюним d3-силы (развести кластеры, но компактно) + фоллбэк-вписывание в экран.
   useEffect(() => {
     const fg = fgRef.current;
     if (!fg || !data || dims.w === 0) return;
-    fg.d3Force?.("charge")?.strength(-60);
-    fg.d3Force?.("link")?.distance(38);
+    fg.d3Force?.("charge")?.strength(-42);
+    fg.d3Force?.("link")?.distance(30);
     fg.d3ReheatSimulation?.();
+    // engine-stop не всегда успевает (кэш-раскладка мгновенна / симуляция длинная) —
+    // вписываем граф в экран и по таймеру.
+    const t = setTimeout(() => fg.zoomToFit?.(500, 48), 1600);
+    return () => clearTimeout(t);
   }, [data, dims.w]);
 
   const drawNode = useCallback(
@@ -308,6 +327,29 @@ export function GraphScreen({
 
       {data && data.nodes.length > 0 && (
         <div ref={wrapCb} style={{ flex: 1, minHeight: 0, position: "relative" }}>
+          {/* Легенда цветов по типу — показываем только встречающиеся в графе. */}
+          <div
+            style={{
+              position: "absolute",
+              top: 6,
+              left: 12,
+              display: "flex",
+              flexWrap: "wrap",
+              gap: "4px 12px",
+              pointerEvents: "none",
+              maxWidth: "76%",
+              zIndex: 2,
+            }}
+          >
+            {LEGEND.filter(([t]) => presentTypes.has(t)).map(([t, label, color]) => (
+              <span key={t} style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                <span style={{ width: 7, height: 7, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--fg-3)", letterSpacing: "-0.005em" }}>
+                  {label}
+                </span>
+              </span>
+            ))}
+          </div>
           {dims.w > 0 && (
             <ForceGraph2D
               ref={fgRef}
@@ -316,6 +358,9 @@ export function GraphScreen({
               graphData={data}
               nodeId="id"
               backgroundColor="rgba(0,0,0,0)"
+              // Драг двигает ВЕСЬ граф (а не отдельный узел) — раскладка фиксированная,
+              // таскать узлы не нужно; так понятнее «подвинуть граф».
+              enableNodeDrag={false}
               linkColor={linkColor as never}
               linkWidth={(l) => 0.4 + ((l as { value?: number }).value ?? 0) * 0.8}
               nodeCanvasObject={drawNode as never}
