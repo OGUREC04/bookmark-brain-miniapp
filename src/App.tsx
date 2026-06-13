@@ -254,6 +254,17 @@ export function App() {
     setSheet({ type: "action", target: targetOf(b), bookmark: b });
   }, []);
 
+  // FLAGS.CONNECTIONS: тап по связанной заметке — догрузить полную и положить на стек.
+  const openRelated = useCallback(
+    (id: string) => {
+      runAction(async () => {
+        const b = await api.getBookmark(id);
+        openDetail(b);
+      });
+    },
+    [runAction, openDetail],
+  );
+
   const onTab = stack.length === 0;
 
   return (
@@ -301,6 +312,7 @@ export function App() {
                   }
                 : undefined
             }
+            onOpenRelated={FLAGS.CONNECTIONS ? openRelated : undefined}
           />
         ) : top?.kind === "space" ? (
           <SpaceDetailScreen

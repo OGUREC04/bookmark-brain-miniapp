@@ -2,10 +2,11 @@
    Плоская editorial-раскладка (без карточки): мета-строка с инлайн-тегами,
    Lora-italic заголовок, summary, редактор списка, AI-блок «brain»,
    полноширинная кнопка источника. */
-import { cloneElement, useState, useRef, useCallback } from "react";
+import { cloneElement, useState, useRef, useCallback, useEffect } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
-import { type Bookmark } from "../lib/api";
+import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
+import { api, type Bookmark } from "../lib/api";
 import { hostOf } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
 
@@ -42,6 +43,7 @@ export function DetailScreen({
   onChanged,
   onToast,
   onSaveText,
+  onOpenRelated,
 }: {
   bookmark: Bookmark;
   onBack: () => void;
@@ -52,6 +54,8 @@ export function DetailScreen({
   onToast?: (msg: string) => void;
   /** FLAGS.TEXT_EDIT (тикет 0rn): сохранить тело текста. undefined = редактирование выключено. */
   onSaveText?: (rawText: string) => Promise<void>;
+  /** FLAGS.CONNECTIONS: открыть связанную заметку по id. undefined = секция «Связано» выключена. */
+  onOpenRelated?: (id: string) => void;
 }) {
   const host = bookmark.url ? hostOf(bookmark.url) : null;
   const rawTitle = bookmark.title || (bookmark.raw_text ?? "").slice(0, 80) || "Без названия";
@@ -61,6 +65,38 @@ export function DetailScreen({
   const isTaskList = bookmark.structured_data?.type === "task_list";
   // если заголовок = хост, не дублируем хост в мете
   const meta = [titleIsUrl ? null : host, formatRelativeDate(bookmark.created_at)].filter(Boolean).join(" · ");
+
+  // FLAGS.CONNECTIONS — секция «Связано» (похожие заметки). Грузим при открытии заметки.
+  const [related, setRelated] = useState<RelatedRow[]>([]);
+  const [relatedTotal, setRelatedTotal] = useState(0);
+  const [showAllRelated, setShowAllRelated] = useState(false);
+  // Смена заметки — сбрасываем «показать все».
+  useEffect(() => setShowAllRelated(false), [bookmark.id]);
+  useEffect(() => {
+    if (!onOpenRelated) return;
+    let cancelled = false;
+    api.getRelated(bookmark.id, showAllRelated ? 100 : 5, showAllRelated)
+      .then((res) => {
+        if (cancelled) return;
+        setRelatedTotal(res.total);
+        setRelated(
+          res.items.map((it) => ({
+            id: it.id,
+            title: it.title || (it.summary ?? "").slice(0, 60) || "Без названия",
+            summary: it.summary,
+          })),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setRelated([]);
+          setRelatedTotal(0);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookmark.id, showAllRelated, onOpenRelated]);
 
   // FLAGS.TEXT_EDIT — inline-правка тела текста (тикет 0rn). Доступна когда родитель дал onSaveText.
   // Тело = raw_text (каноничное поле; для голосовых бэк уточнит — см. бриф BOOKMARK-TEXT-EDIT).
@@ -309,6 +345,17 @@ export function DetailScreen({
               {bookmark.key_ideas.join(" · ")}
             </div>
           </div>
+        )}
+
+        {/* FLAGS.CONNECTIONS — «Связано»: похожие заметки (тап → переход) */}
+        {onOpenRelated && (
+          <RelatedSection
+            rows={related}
+            total={relatedTotal}
+            showingAll={showAllRelated}
+            onOpen={onOpenRelated}
+            onShowAll={() => setShowAllRelated(true)}
+          />
         )}
 
         {/* open source + copy link */}
