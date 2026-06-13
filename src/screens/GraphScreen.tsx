@@ -189,12 +189,26 @@ export function GraphScreen({
     [focusedId, onOpenNote],
   );
 
+  // Сироты (узлы без связей) загромождают граф и создают ощущение «не полного».
+  // По умолчанию прячем; показываем счётчиком-тоглом.
+  const [showOrphans, setShowOrphans] = useState(false);
+  const orphanCount = useMemo(
+    () => (data ? data.nodes.filter((n) => n.degree === 0 && !n.isCenter).length : 0),
+    [data],
+  );
+  const gdata = useMemo<ForceGraphData | null>(() => {
+    if (!data) return null;
+    if (showOrphans || orphanCount === 0) return data;
+    return { nodes: data.nodes.filter((n) => n.degree > 0 || n.isCenter), links: data.links };
+  }, [data, showOrphans, orphanCount]);
+  const edgeCount = data?.links.length ?? 0;
+
   // Какие типы реально есть в графе — для легенды (не показываем лишние цвета).
   const presentTypes = useMemo(() => {
     const s = new Set<string>();
-    for (const n of data?.nodes ?? []) s.add(n.type && TYPE_COLOR[n.type] ? n.type : "__other");
+    for (const n of gdata?.nodes ?? []) s.add(n.type && TYPE_COLOR[n.type] ? n.type : "__other");
     return s;
-  }, [data]);
+  }, [gdata]);
 
   // Сохранение раскладки (full) + авто-вписывание графа в экран после стабилизации.
   const handleEngineStop = useCallback(() => {
@@ -216,18 +230,23 @@ export function GraphScreen({
     });
   }, []);
 
-  // Тюним d3-силы (развести кластеры, но компактно) + фоллбэк-вписывание в экран.
+  // Тюним d3-силы по ресёрчу (Obsidian/Cambridge): отталкивание с потолком + длина
+  // ребра по похожести (похожие ближе) → читаемые кластеры, не хайрбол и не россыпь.
   useEffect(() => {
     const fg = fgRef.current;
-    if (!fg || !data || dims.w === 0) return;
-    fg.d3Force?.("charge")?.strength(-42);
-    fg.d3Force?.("link")?.distance(30);
+    if (!fg || !gdata || dims.w === 0) return;
+    const charge = fg.d3Force?.("charge");
+    charge?.strength?.(-120);
+    charge?.distanceMax?.(320);
+    const link = fg.d3Force?.("link");
+    link?.distance?.((l: { value?: number }) => 36 + (1 - (l.value ?? 0)) * 44);
+    link?.strength?.(0.4);
     fg.d3ReheatSimulation?.();
     // engine-stop не всегда успевает (кэш-раскладка мгновенна / симуляция длинная) —
     // вписываем граф в экран и по таймеру.
-    const t = setTimeout(() => fg.zoomToFit?.(500, 48), 1600);
+    const t = setTimeout(() => fg.zoomToFit?.(500, 48), 1700);
     return () => clearTimeout(t);
-  }, [data, dims.w]);
+  }, [gdata, dims.w]);
 
   const drawNode = useCallback(
     (node: FGNode, ctx: CanvasRenderingContext2D, scale: number) => {
@@ -249,10 +268,18 @@ export function GraphScreen({
       const labelOn = node.isCenter || node.id === focusedId || neighbors.has(node.id) || scale > 0.85;
       if (labelOn && !dimmed) {
         const label = node.name.length > 22 ? `${node.name.slice(0, 22)}…` : node.name;
-        ctx.font = `${node.isCenter || node.id === focusedId ? 5.5 : 4.2}px Onest, sans-serif`;
-        ctx.fillStyle = "rgba(40,32,24,0.8)";
+        const fontPx = node.isCenter || node.id === focusedId ? 5.5 : 4.2;
+        ctx.font = `${fontPx}px Onest, sans-serif`;
         ctx.textAlign = "center";
-        ctx.fillText(label, x, y + r + 5.5);
+        ctx.textBaseline = "top";
+        const ly = y + r + 2.5;
+        // Halo (плашка цвета страницы) под текстом — иначе подпись нечитаема над рёбрами.
+        const tw = ctx.measureText(label).width;
+        ctx.fillStyle = "rgba(245,241,230,0.82)";
+        ctx.fillRect(x - tw / 2 - 1.5, ly - 0.5, tw + 3, fontPx + 1.5);
+        ctx.fillStyle = "rgba(40,32,24,0.85)";
+        ctx.fillText(label, x, ly);
+        ctx.textBaseline = "alphabetic";
       }
       ctx.globalAlpha = 1;
     },
@@ -355,12 +382,17 @@ export function GraphScreen({
               ref={fgRef}
               width={dims.w}
               height={dims.h}
-              graphData={data}
+              graphData={gdata ?? data}
               nodeId="id"
               backgroundColor="rgba(0,0,0,0)"
               // Драг двигает ВЕСЬ граф (а не отдельный узел) — раскладка фиксированная,
               // таскать узлы не нужно; так понятнее «подвинуть граф».
               enableNodeDrag={false}
+              minZoom={0.3}
+              maxZoom={8}
+              d3VelocityDecay={0.5}
+              warmupTicks={80}
+              cooldownTicks={120}
               linkColor={linkColor as never}
               linkWidth={(l) => 0.4 + ((l as { value?: number }).value ?? 0) * 0.8}
               nodeCanvasObject={drawNode as never}
@@ -375,6 +407,68 @@ export function GraphScreen({
               onEngineStop={handleEngineStop}
             />
           )}
+
+          {/* нижняя панель: счётчик · тогл сирот · «вписать» */}
+          <div
+            style={{
+              position: "absolute",
+              left: 12,
+              right: 12,
+              bottom: mode === "full" ? 6 : 12,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 10,
+              zIndex: 2,
+              pointerEvents: "none",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".02em" }}>
+                {gdata?.nodes.length ?? 0} заметок · {edgeCount} связей
+              </span>
+              {orphanCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setShowOrphans((v) => !v)}
+                  style={{
+                    pointerEvents: "auto",
+                    background: "transparent",
+                    border: "none",
+                    padding: 0,
+                    color: "var(--brand-primary)",
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    WebkitTapHighlightColor: "transparent",
+                  }}
+                >
+                  {showOrphans ? "скрыть одиночные" : `+${orphanCount} без связей`}
+                </button>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => fgRef.current?.zoomToFit?.(420, 48)}
+              style={{
+                pointerEvents: "auto",
+                background: "var(--surface-glass-strong)",
+                border: "1px solid var(--border-1)",
+                borderRadius: 999,
+                padding: "5px 12px",
+                color: "var(--fg-2)",
+                fontFamily: "var(--font-ui)",
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                flexShrink: 0,
+                WebkitTapHighlightColor: "transparent",
+              }}
+            >
+              вписать
+            </button>
+          </div>
         </div>
       )}
     </div>
