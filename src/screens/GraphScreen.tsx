@@ -128,10 +128,20 @@ export function GraphScreen({
   const onEngineStop = useCallback(() => {
     setFull((s) => {
       if (s.phase !== "ready" || !s.needsSave) return s;
-      const coords = (s.data.nodes as FGNode[])
+      const allNodes = s.data.nodes as FGNode[];
+      const coords = allNodes
         .filter((n) => typeof n.x === "number" && typeof n.y === "number")
         .map((n) => ({ id: n.id, x: Math.round(n.x as number), y: Math.round(n.y as number) }));
-      if (coords.length > 0) api.buildGraph(coords).catch(() => {});
+      // #2 (ревью): сохраняем только ПОЛНУЮ раскладку. Частичная (часть узлов без
+      // координат — ранний engine-stop) хуже отсутствия: на след. открытии эти узлы
+      // падают в origin. Не флипаем needsSave → дождёмся полной на следующем stop.
+      if (allNodes.length === 0 || coords.length < allNodes.length) return s;
+      // #4 (ревью): после успешного сохранения снимаем stale — иначе баннер «устарел»
+      // висит даже после того, как юзер только что пересобрал граф.
+      api
+        .buildGraph(coords)
+        .then(() => setFull((cur) => (cur.phase === "ready" ? { ...cur, stale: false } : cur)))
+        .catch(() => {});
       return { ...s, needsSave: false };
     });
   }, []);
@@ -156,7 +166,8 @@ export function GraphScreen({
 
   const data: ForceGraphData | null =
     mode === "local" ? local : full.phase === "ready" ? full.data : null;
-  const loading = (mode === "full" && full.phase === "loading") || (mode === "local" && !local);
+  const loading =
+    (mode === "full" && full.phase === "loading") || (mode === "local" && !!centerId && !local);
 
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", paddingTop: "calc(4px + env(safe-area-inset-top,0))" }}>
