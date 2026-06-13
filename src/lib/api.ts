@@ -177,6 +177,70 @@ export interface SearchResponse {
   summary: string | null;
 }
 
+/** Режим поиска (Connections FR-7): обычный гибрид vs по смыслу. */
+export type SearchMode = "hybrid" | "semantic";
+
+// ─── Connections (Phase 5A) — зеркалят бэкенд, контракты проверены вживую.
+//     См. docs/prd/CONNECTIONS-MINIAPP.md (монорепо). ───
+
+/** Похожая заметка (секция «Связано»). `weight` — сила связи. */
+export interface RelatedItem {
+  id: string;
+  title: string | null;
+  summary: string | null;
+  item_type: string | null;
+  weight: number;
+  created_at: string | null;
+}
+
+export interface RelatedResponse {
+  items: RelatedItem[];
+  total: number; // истинное число связей (для бейджа «Связано (N)»)
+}
+
+export interface GraphNode {
+  id: string;
+  title: string | null;
+  item_type: string | null;
+}
+
+/** Ребро графа В ФОРМАТЕ БЭКА (`from`/`to`). В формат либы графа
+ *  (`source`/`target`) преобразует ТОЛЬКО adapters.graphDataOf(). */
+export interface GraphEdge {
+  from: string;
+  to: string;
+  weight: number;
+}
+
+/** Эго-граф вокруг заметки (на лету, без кэша). */
+export interface GraphLocalData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  center: string;
+}
+
+/** Координаты узла из клиентской раскладки (force-симуляция → кэш на бэке). */
+export interface GraphLayoutNode {
+  id: string;
+  x: number;
+  y: number;
+}
+
+/** Полный граф. `layout` = кэш координат или null (надо считать клиенту). */
+export interface GraphData {
+  nodes: GraphNode[];
+  edges: GraphEdge[];
+  layout: GraphLayoutNode[] | null;
+  stale: boolean; // true → раскладка устарела, пора пересобрать
+  node_count: number;
+  built_at: string | null;
+}
+
+export interface GraphBuildResponse {
+  node_count: number;
+  saved: boolean;
+}
+
 export interface UserInfo {
   id: string;
   telegram_id: number;
@@ -254,10 +318,37 @@ export const api = {
     });
   },
 
-  search(query: string, limit = 20): Promise<SearchResponse> {
+  search(query: string, limit = 20, mode?: SearchMode): Promise<SearchResponse> {
     return request("/api/v1/search/", {
       method: "POST",
-      body: JSON.stringify({ query, limit }),
+      body: JSON.stringify({ query, limit, ...(mode ? { mode } : {}) }),
+    });
+  },
+
+  // ─── Connections (Phase 5A) — docs/prd/CONNECTIONS-MINIAPP.md ───
+
+  /** Похожие заметки (секция «Связано»). all=true → все связи, иначе топ-limit. */
+  getRelated(bookmarkId: string, limit = 5, all = false): Promise<RelatedResponse> {
+    const qs = new URLSearchParams({ limit: String(limit), all: String(all) });
+    return request(`/api/v1/bookmarks/${bookmarkId}/related?${qs.toString()}`);
+  },
+
+  /** Эго-граф вокруг заметки (на лету). */
+  getGraphLocal(center: string, depth = 2): Promise<GraphLocalData> {
+    const qs = new URLSearchParams({ center, depth: String(depth) });
+    return request(`/api/v1/graph/local?${qs.toString()}`);
+  },
+
+  /** Полный граф + кэш раскладки (layout=null → считать клиенту). */
+  getGraph(): Promise<GraphData> {
+    return request("/api/v1/graph");
+  },
+
+  /** Сохранить раскладку, посчитанную клиентом (≤350 узлов). */
+  buildGraph(nodes: GraphLayoutNode[]): Promise<GraphBuildResponse> {
+    return request("/api/v1/graph/build", {
+      method: "POST",
+      body: JSON.stringify({ nodes }),
     });
   },
 
