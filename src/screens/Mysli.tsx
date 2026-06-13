@@ -282,8 +282,9 @@ export function MysliScreen({
 
   return (
     <div style={{ padding: "0 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
-      {/* sticky — ТОЛЬКО строка поиска + колокольчик: при скролле ленты она
-          остаётся плавающей вверху (frosted-фон), а чипы уезжают под неё. */}
+      {/* sticky — ТОЛЬКО строка поиска + колокольчик: при скролле остаётся вверху.
+          Фон = цвет страницы (solid), БЕЗ frosted-панели — раньше был glass-фрейм,
+          который выглядел отдельной плашкой. Теперь просто чистая полоса. */}
       <div
         style={{
           position: "sticky",
@@ -291,9 +292,7 @@ export function MysliScreen({
           zIndex: 20,
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
           paddingBottom: 10,
-          background: "var(--surface-glass)",
-          backdropFilter: "var(--blur-nav)",
-          WebkitBackdropFilter: "var(--blur-nav)",
+          background: "var(--bg-page)",
         }}
       >
         <div style={{ display: "flex", alignItems: "stretch", gap: 8, padding: "0 16px" }}>
