@@ -155,10 +155,18 @@ export function GraphScreen({
     }
   }, []);
 
+  // Авто-загрузка при входе на таб (раньше юзер каждый раз жал «Построить граф»: экран
+  // пересоздаётся при навигации → сбрасывался в idle). Раскладка кэшируется на бэке →
+  // повторный заход мгновенный.
+  useEffect(() => {
+    if (mode === "full" && full.phase === "idle") buildFull();
+  }, [mode, full.phase, buildFull]);
+
   const data: ForceGraphData | null =
     mode === "local" ? local : full.phase === "ready" ? full.data : null;
   const loading =
-    (mode === "full" && full.phase === "loading") || (mode === "local" && !!centerId && !local);
+    (mode === "full" && (full.phase === "idle" || full.phase === "loading")) ||
+    (mode === "local" && !!centerId && !local);
 
   // ── Интерактив: фокус на узле (тап → подсветка, повторный тап → открыть заметку) ──
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -236,16 +244,17 @@ export function GraphScreen({
     const fg = fgRef.current;
     if (!fg || !gdata || dims.w === 0) return;
     const charge = fg.d3Force?.("charge");
-    charge?.strength?.(-120);
-    charge?.distanceMax?.(320);
+    charge?.strength?.(-90);
+    charge?.distanceMax?.(280);
     const link = fg.d3Force?.("link");
-    link?.distance?.((l: { value?: number }) => 36 + (1 - (l.value ?? 0)) * 44);
+    link?.distance?.((l: { value?: number }) => 34 + (1 - (l.value ?? 0)) * 40);
     link?.strength?.(0.4);
     fg.d3ReheatSimulation?.();
-    // engine-stop не всегда успевает (кэш-раскладка мгновенна / симуляция длинная) —
-    // вписываем граф в экран и по таймеру.
-    const t = setTimeout(() => fg.zoomToFit?.(500, 48), 1700);
-    return () => clearTimeout(t);
+    // КАСКАД вписываний: симуляция оседает не сразу (+реостат двигает узлы после
+    // первого engine-stop) — поэтому вписываем несколько раз по мере оседания,
+    // иначе граф «не влезает» (фитили устаревшую раскладку).
+    const ts = [350, 900, 1800, 3000].map((d) => setTimeout(() => fg.zoomToFit?.(400, 44), d));
+    return () => ts.forEach(clearTimeout);
   }, [gdata, dims.w]);
 
   const drawNode = useCallback(
@@ -323,15 +332,6 @@ export function GraphScreen({
         </div>
       )}
 
-      {mode === "full" && full.phase === "idle" && (
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 24px" }}>
-          <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 15, color: "var(--fg-3)", textAlign: "center", lineHeight: 1.4 }}>
-            Карта смысловых связей между всеми твоими заметками
-          </span>
-          <button onClick={buildFull} style={primaryBtn}>Построить граф</button>
-        </div>
-      )}
-
       {loading && (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>Строю граф…</span>
@@ -339,8 +339,9 @@ export function GraphScreen({
       )}
 
       {mode === "full" && full.phase === "error" && (
-        <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 24px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>Не удалось построить граф</span>
+          <button onClick={buildFull} style={primaryBtn}>Повторить</button>
         </div>
       )}
 
