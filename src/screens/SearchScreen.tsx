@@ -3,7 +3,8 @@
 import { useEffect, useRef, useState, cloneElement } from "react";
 import { Icons } from "../components/ds/icons";
 import { Glyph, EmptyState } from "../components/ds/atoms";
-import { api, type SearchResult as ApiResult, type Bookmark } from "../lib/api";
+import { api, type SearchResult as ApiResult, type Bookmark, type SearchMode } from "../lib/api";
+import { FLAGS } from "../lib/flags";
 import { hostOf, titleOf } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
 
@@ -94,6 +95,8 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
   const [summary, setSummary] = useState<string | null>(null);
   const [searched, setSearched] = useState(false);
   const [loading, setLoading] = useState(false);
+  // FLAGS.CONNECTIONS — режим поиска: «обычный» (hybrid) / «по смыслу» (semantic).
+  const [mode, setMode] = useState<SearchMode>("hybrid");
   const reqId = useRef(0);
 
   const run = async (query: string) => {
@@ -106,7 +109,7 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
     const id = ++reqId.current;
     setLoading(true);
     try {
-      const r = await api.search(query.trim(), 20);
+      const r = await api.search(query.trim(), 20, FLAGS.CONNECTIONS ? mode : undefined);
       if (id !== reqId.current) return; // stale response — a newer search superseded it
       setResults(r.results);
       setSummary(r.summary);
@@ -126,7 +129,7 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
     const t = setTimeout(() => run(q), 350);
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [q]);
+  }, [q, mode]);
 
   return (
     <div style={{ padding: "4px 0 calc(116px + env(safe-area-inset-bottom, 0px))" }}>
@@ -190,6 +193,40 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
           </button>
         </div>
       </div>
+
+      {/* FLAGS.CONNECTIONS — режим поиска: обычный vs семантический (по смыслу) */}
+      {FLAGS.CONNECTIONS && (
+        <div style={{ padding: "0 16px", marginBottom: 14 }}>
+          <div style={{ display: "inline-flex", background: "rgba(234,227,207,0.5)", borderRadius: 999, padding: 3, gap: 2 }}>
+            {([["hybrid", "Обычный"], ["semantic", "По смыслу"]] as const).map(([m, label]) => {
+              const on = mode === m;
+              return (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => setMode(m)}
+                  style={{
+                    border: "none",
+                    cursor: "pointer",
+                    padding: "6px 14px",
+                    borderRadius: 999,
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 13,
+                    fontWeight: on ? 600 : 500,
+                    letterSpacing: "-0.01em",
+                    background: on ? "var(--brand-primary)" : "transparent",
+                    color: on ? "var(--fg-on-brand)" : "var(--fg-2)",
+                    WebkitTapHighlightColor: "transparent",
+                    transition: "background 0.15s ease",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {loading && (
         <div style={{ padding: "40px 0", display: "flex", justifyContent: "center" }}>
