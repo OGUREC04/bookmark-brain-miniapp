@@ -282,20 +282,28 @@ export function MysliScreen({
 
   return (
     <div style={{ padding: "0 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
-      {/* sticky — ТОЛЬКО строка поиска + колокольчик: при скролле остаётся вверху.
-          Фон = цвет страницы (solid), БЕЗ frosted-панели — раньше был glass-фрейм,
-          который выглядел отдельной плашкой. Теперь просто чистая полоса. */}
+      {/* sticky — поиск + колокольчик. iOS scroll-edge: фон цвета страницы +
+          backdrop-blur, оба ЗАТУХАЮТ книзу через mask-градиент → нет жёсткой границы,
+          контент уезжает под шапку с плавным фейдом+блюром (как в Telegram).
+          pointerEvents:none на контейнере (зона фейда не перехватывает тапы по ленте),
+          auto — на строке поиска. */}
       <div
         style={{
           position: "sticky",
           top: 0,
           zIndex: 20,
           paddingTop: "calc(env(safe-area-inset-top, 0px) + 16px)",
-          paddingBottom: 10,
-          background: "var(--bg-page)",
+          paddingBottom: 26,
+          pointerEvents: "none",
+          background:
+            "linear-gradient(to bottom, var(--bg-page) 0%, var(--bg-page) calc(100% - 30px), transparent 100%)",
+          backdropFilter: "blur(10px)",
+          WebkitBackdropFilter: "blur(10px)",
+          maskImage: "linear-gradient(to bottom, #000 0%, #000 calc(100% - 28px), transparent 100%)",
+          WebkitMaskImage: "linear-gradient(to bottom, #000 0%, #000 calc(100% - 28px), transparent 100%)",
         }}
       >
-        <div style={{ display: "flex", alignItems: "stretch", gap: 8, padding: "0 16px" }}>
+        <div style={{ display: "flex", alignItems: "stretch", gap: 8, padding: "0 16px", pointerEvents: "auto" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <SearchBar onFocus={onSearch} />
           </div>
