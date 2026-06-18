@@ -222,6 +222,7 @@
 }
 @media (prefers-reduced-motion: reduce) {
   .bb-wave-bar { animation: none; transform: scaleY(0.7); }
+  [style*="mPulse"] { animation: none !important; }
 }
 
 

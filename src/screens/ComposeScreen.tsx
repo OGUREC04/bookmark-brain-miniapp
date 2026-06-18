@@ -94,6 +94,8 @@ export function ComposeScreen({
   };
 
   const startRecording = async () => {
+    // Запись уже стартует/идёт — иначе дабл-тап плодит второй recorder и течёт mic-трек (HIGH из ревью).
+    if (recorderRef.current) return;
     if (!canRecord) {
       // Старый iOS WebView без записи → фолбэк в чат бота, иначе тост.
       if (voiceOn && !openBotVoiceChat()) onToast?.("Запись голоса доступна в чате с ботом");
@@ -149,13 +151,20 @@ export function ComposeScreen({
       if (aliveRef.current) setVoiceState("idle");
       return;
     }
+    if (!onUploadMedia) {
+      onToast?.("Голосовая загрузка недоступна");
+      if (aliveRef.current) setVoiceState("idle");
+      return;
+    }
     try {
-      const bm = await onUploadMedia!(blob, {
+      const bm = await onUploadMedia(blob, {
         kind: "audio",
         duration: durationSec,
         filename: filenameForMime(mimeType),
       });
-      onCreated?.(bm); // родитель закроет экран и откроет заметку
+      // Фолбэк: если родитель не повесил onCreated — не зависаем в «sending».
+      if (onCreated) onCreated(bm); // родитель закроет экран и откроет заметку
+      else if (aliveRef.current) setVoiceState("idle");
     } catch (e) {
       onToast?.(e instanceof Error ? e.message : "Не удалось отправить голос");
       if (aliveRef.current) setVoiceState("idle");
@@ -273,7 +282,7 @@ export function ComposeScreen({
                 display: "grid",
                 gridTemplateColumns: "auto 1fr auto",
                 gridTemplateAreas: expanded
-                  ? '"input input input" "lead mid send"'
+                  ? '"input input input" "lead . send"'
                   : '"lead input send"',
                 alignItems: "center",
                 gap: 8,
