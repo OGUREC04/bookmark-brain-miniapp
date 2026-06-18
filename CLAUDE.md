@@ -157,12 +157,18 @@ Telegram WebView (нужен hard-close).
 размеры холста (не тайминги). Доступные «вкусности» графа (не сделаны): поиск по графу,
 цвет по кластерам, слайдер глубины, превью-тултип, collision-сила.
 
-**СОСТОЯНИЕ ФЛАГОВ/ДЕПЛОЯ (важно после компакта):** `FLAGS.TEXT_EDIT` и `FLAGS.CONNECTIONS`
-в `src/lib/flags.ts` — в РЕПО `false`, ЛОКАЛЬНО (working tree, uncommitted) `true` для теста.
-`FLAGS.SPACES=false` (фича не готова — таб «Пространства» виден, но **disabled + бейдж «Скоро»**,
-тап даёт тост «Пространства · скоро»; действие «В пространство» в ⋮ по-прежнему скрыто). Бэк правок
-текста (8uu/0rn) и связей — в `main` монорепо, **НЕ задеплоен на VPS**. Деплой — действие юзера:
-бэк→VPS + `alembic upgrade head` + `backfill_bookmark_links`, потом флаги `true`+коммит+фронт.
+**ЗАКОММИЧЕНО+ЗАПУШЕНО 2026-06-18:** miniapp `66dea1a` → origin/main (голос + визуал-полиш +
+детальный C); монорепо `7af9a40` → origin/feat/tg-expandable-transcripts (бэк-фиксы голоса:
+`_job_timeout`, чат-дубль, AI-заголовок, ffmpeg-доки). В `main` монорепо **НЕ слит** — на ветке
+висит чужой transcripts-WIP (мердж затащил бы его); нужен отдельный PR/cherry-pick `7af9a40`.
+Голос РАБОТАЕТ локально (ffmpeg поставлен через `winget Gyan.FFmpeg`).
+
+**СОСТОЯНИЕ ФЛАГОВ (важно после компакта; ⚠️ ПРОДА НЕТ — только dev, 2026-06-18):** в `src/lib/flags.ts`:
+`FLAGS.VOICE_UPLOAD = true` — **включён для дева** (прода нет; дев-инфра готова: Yandex S3 `bookmarkbrain-stt`
++ Yandex STT — те же, что у бота — + ffmpeg в воркере). НЕ откатывать в `false` «ради прода»: прода нет.
+`FLAGS.TEXT_EDIT`/`CONNECTIONS` — пока `false`: их бэк (8uu/0rn, связи) в `main` монорепо, на деве проверить
+отдельно, потом включить так же. `FLAGS.SPACES=false` (фича не готова — таб «Пространства» виден, но
+**disabled + бейдж «Скоро»**, тап даёт тост «Пространства · скоро»; «В пространство» в ⋮ скрыто).
 
 **СЕССИЯ визуал-полиша (uncommitted, build зелёный, флаги локально true):** шапка ленты
 scroll-edge; навбар Instagram-стиль + фикс safe-area; граф (цвета/прочее=серый, легенда+счётчик
@@ -194,12 +200,21 @@ abort+освобождение мика/guard-валидаторы), `api.ts` (`
 `vitest.config.ts`, `src/test-setup.ts` (мок MediaRecorder/getUserMedia), tsconfig excludes тесты.
 **UI-слой ГОТОВ (2026-06-17, build + 45 тестов зелёные):** flags.ts `VOICE_UPLOAD` (репо false/локально
 true); telegram.ts `openTelegramLink`+`openBotVoiceChat` (iOS-фолбэк; `VITE_BOT_USERNAME` в `.env`/
-`.env.example`, дев=bookmarkbrain_dev_bot); QuickCreateSheet 🎤 (запись/таймер/abort при закрытии/
+`.env.example`, дев=bookmarkbrain_dev_bot); ComposeScreen 🎤 (запись/таймер/abort при закрытии/
 валидаторы/тосты); App.tsx (проводка onUploadMedia/onToast/onCreated→openDetail + поллинг через
 isWorkingStatus, отвязан от FLAGS.TEXT_EDIT); DetailScreen «Brain слушает…»/«Не распознал». Контракт
 `POST /api/v1/bookmarks/upload`. **Локальный caveat:** транскод webm→ogg на бэке требует ffmpeg в
 окружении воркера — если его нет, ai_status=failed (это инфра, не фронт-баг). **Перед коммитом:**
-VOICE_UPLOAD→false в репо (как TEXT_EDIT/CONNECTIONS).
+VOICE_UPLOAD→false в репо (как TEXT_EDIT/CONNECTIONS). [ОБНОВЛЕНО 2026-06-18: VOICE_UPLOAD теперь `true` — прода нет, см. блок «СОСТОЯНИЕ ФЛАГОВ» выше.]
+
+**Захват → полноэкранная страница (2026-06-18, build + 54 теста зелёные):** шторка `QuickCreateSheet`
+удалена, заменена на `screens/ComposeScreen.tsx` — полный экран «Новая мысль»: серифный герой +
+расширяющийся композер (компакт одной строкой → при длинном тексте кнопки вниз, паттерн Meta/Gemini;
+мик+плюс слева, отправка справа) + иммерсивная запись (таймер/псевдо-волна/Отмена/Отправить). Навигация:
+новый `ViewLayer kind:"compose"`, FAB делает `pushView({kind:"compose"})` (не sheet), `onCreated→openDetail`.
+Логика — `lib/compose.ts` (`canSend`/`shouldExpandComposer`) + тесты `lib/compose.test.ts`; псевдо-волна и
+серифный плейсхолдер — `.bb-wave-bar`/`.compose-input` в `styles/layout.css`. Это «первое сообщение»
+будущего треда — часть фичи «заметка-как-диалог» (PRD будет в монорепо `docs/prd/NOTES-AS-CONVERSATIONS.md`).
 
 **Остаётся:** перерисовка иконок (предложить превью вариантов); коммит фронта когда флаги разрулим.
 **Сделано 2026-06-16:** детальный экран (вариант C) подтверждён; flush черновика при жёстком «Назад»

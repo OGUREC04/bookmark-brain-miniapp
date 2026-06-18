@@ -202,6 +202,29 @@
   to   { opacity: 1; }
 }
 
+/* Compose: серифный плейсхолдер строки ввода (нативный, без фейк-оверлея). */
+.compose-input::placeholder {
+  font-family: var(--font-display);
+  font-style: italic;
+  color: var(--fg-4);
+  opacity: 1;
+}
+
+/* Compose: «живая» псевдо-волна записи (амплитуда НЕ от звука — бегущие бары,
+   паттерн B из дизайн-ревью: дёшево, без аудио-графа в Telegram WebView). */
+@keyframes bb-wave {
+  from { transform: scaleY(0.3); }
+  to   { transform: scaleY(1); }
+}
+.bb-wave-bar {
+  transform-origin: center;
+  animation: bb-wave 0.9s ease-in-out infinite alternate;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bb-wave-bar { animation: none; transform: scaleY(0.7); }
+}
+
+
 @media (prefers-reduced-motion: reduce) {
   .screen-fade { animation: none; }
 }

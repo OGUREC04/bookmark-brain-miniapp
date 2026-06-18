@@ -6,4 +6,3 @@ export { ActionSheet, type SheetTarget } from "./ActionSheet";
 export { RemindersSheet, type ReminderRowData } from "./RemindersSheet";
 export { ReminderPickerSheet } from "./ReminderPickerSheet";
 export { MoveToSpaceSheet, type SpaceOption } from "./MoveToSpaceSheet";
-export { QuickCreateSheet } from "./QuickCreateSheet";

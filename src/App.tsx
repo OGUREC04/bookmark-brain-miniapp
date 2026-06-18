@@ -14,12 +14,12 @@ import { MeScreen } from "./screens/MeScreen";
 import { DetailScreen } from "./screens/DetailScreen";
 import { SpaceDetailScreen } from "./screens/SpaceDetailScreen";
 import { GraphScreen } from "./screens/GraphScreen";
+import { ComposeScreen } from "./screens/ComposeScreen";
 import {
   ActionSheet,
   RemindersSheet,
   ReminderPickerSheet,
   MoveToSpaceSheet,
-  QuickCreateSheet,
   type SheetTarget,
   type SpaceOption,
 } from "./components/ds/Sheets";
@@ -42,6 +42,8 @@ type ViewLayer =
   | { kind: "search" }
   | { kind: "space"; space: Folder }
   | { kind: "detail"; bookmark: Bookmark }
+  // Полноэкранный захват «Новая мысль» (текст + голос) — заменил шторку quickCreate.
+  | { kind: "compose" }
   // FLAGS.CONNECTIONS: локальный эго-граф вокруг заметки (открыт из «Связано»).
   | { kind: "graph"; center: string };
 
@@ -51,7 +53,6 @@ type Sheet =
   | { type: "reminderPicker"; bookmark: Bookmark }
   | { type: "reminderReschedule"; reminderId: string; contextText: string; initialISO?: string | null }
   | { type: "moveToSpace"; bookmark: Bookmark }
-  | { type: "quickCreate" }
   | null;
 
 export function App() {
@@ -299,9 +300,11 @@ export function App() {
               ? `sp-${top.space.id}`
               : top?.kind === "graph"
                 ? `g-${top.center}`
-                : top?.kind === "search"
-                  ? "search"
-                  : tab
+                : top?.kind === "compose"
+                  ? "compose"
+                  : top?.kind === "search"
+                    ? "search"
+                    : tab
         }
         className="screen-fade"
       >
@@ -340,6 +343,24 @@ export function App() {
           <GraphScreen mode="local" centerId={top.center} onBack={popView} onOpenNote={openRelated} />
         ) : top?.kind === "search" ? (
           <SearchScreen onBack={popView} onOpen={openDetail} />
+        ) : top?.kind === "compose" ? (
+          <ComposeScreen
+            onClose={popView}
+            onSave={(text) =>
+              runAction(async () => {
+                await api.createThought(text);
+                popView();
+                reload();
+              })
+            }
+            onToast={setToast}
+            onUploadMedia={FLAGS.VOICE_UPLOAD ? (file, opts) => api.uploadMedia(file, opts) : undefined}
+            onCreated={(bm) => {
+              popView();
+              reload();
+              openDetail(bm); // откроет заметку с «Brain слушает…», поллинг обновит
+            }}
+          />
         ) : tab === "mysli" ? (
           <MysliScreen
             reloadKey={reloadKey}
@@ -372,7 +393,7 @@ export function App() {
           }}
           onFab={() => {
             hapticImpact("light");
-            setSheet({ type: "quickCreate" });
+            pushView({ kind: "compose" });
           }}
         />
       )}
@@ -473,27 +494,6 @@ export function App() {
             })
           }
           onCreate={comingSoon}
-        />
-      )}
-
-      {sheet?.type === "quickCreate" && (
-        <QuickCreateSheet
-          onDismiss={closeSheet}
-          onSave={(text) =>
-            runAction(async () => {
-              await api.createThought(text);
-              closeSheet();
-              reload();
-            })
-          }
-          onToast={setToast}
-          // FLAGS.VOICE_UPLOAD (тикет ti0): загрузка голоса. undefined = голос выключен.
-          onUploadMedia={FLAGS.VOICE_UPLOAD ? (file, opts) => api.uploadMedia(file, opts) : undefined}
-          onCreated={(bm) => {
-            closeSheet();
-            reload();
-            openDetail(bm); // откроет заметку с «Brain слушает…», поллинг обновит
-          }}
         />
       )}
 

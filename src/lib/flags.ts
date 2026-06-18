@@ -24,10 +24,11 @@ export const FLAGS = {
   SPACES: false,
 
   /**
-   * Голосовой ввод в Mini App (тикет ti0, фаза 1): кнопка 🎤 в QuickCreate, запись через
-   * MediaRecorder → POST /bookmarks/upload. Бэк (3sr/бт-12) в main, требует деплоя
-   * (S3 + ffmpeg в воркере + Yandex STT). В РЕПО = false, локально временно true.
+   * Голосовой ввод в Mini App (тикет ti0): кнопка 🎤 в ComposeScreen, запись через
+   * MediaRecorder → POST /bookmarks/upload. Бэк (3sr/бт-12) в main; дев-инфра готова —
+   * Yandex S3 `bookmarkbrain-stt` + Yandex STT (те же, что у бота) + ffmpeg в воркере.
+   * ПРОДА НЕТ → включено для дева (true) с 2026-06-18.
    * Бриф: bookmark-brain/docs/prd/MINIAPP-MEDIA-UPLOAD.md.
    */
-  VOICE_UPLOAD: false,
+  VOICE_UPLOAD: true,
 } as const;
