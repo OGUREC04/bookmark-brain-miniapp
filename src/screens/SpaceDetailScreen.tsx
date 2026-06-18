@@ -131,7 +131,7 @@ export function SpaceDetailScreen({
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 500, letterSpacing: "-0.025em", color: "var(--fg-1)", lineHeight: 1.1 }}>
             {space.name}
           </h1>
-          <div style={{ marginTop: 6, fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>
+          <div style={{ marginTop: 6, fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--fg-3)", letterSpacing: "-0.005em" }}>
             {space.bookmarks_count} закладок
           </div>
         </div>

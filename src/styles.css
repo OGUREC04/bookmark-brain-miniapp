@@ -407,44 +407,6 @@ a:hover { color: var(--color-accent-hover); }
   padding: var(--space-md) 0;
 }
 
-/* ─── Bottom Nav ─── */
-
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  justify-content: space-around;
-  padding: var(--space-sm) 0 calc(var(--space-sm) + env(safe-area-inset-bottom));
-  z-index: 100;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-  padding: var(--space-xs) var(--space-md);
-  color: var(--color-text-tertiary);
-  font-size: 11px;
-  font-weight: 500;
-  border: none;
-  background: none;
-  cursor: pointer;
-  transition: color var(--transition);
-}
-
-.nav-item.active {
-  color: var(--color-accent);
-}
-
-.nav-item-icon {
-  font-size: 20px;
-}
-
 /* ─── Empty state ─── */
 
 .empty-state {

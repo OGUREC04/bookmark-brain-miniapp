@@ -1,18 +1,70 @@
-/* QuickCreateSheet — FAB+ (functional). Ported 1:1; styles verbatim. */
-import { useState, cloneElement } from "react";
+/* QuickCreateSheet — FAB+ (functional): текст + голосовая запись (тикет ti0, фаза 1).
+   Голос за FLAGS.VOICE_UPLOAD: 🎤 → запись (MediaRecorder) → upload → родитель открывает заметку.
+   Микрофон освобождается при стопе И при закрытии листа во время записи (abort в cleanup). */
+import { useState, useRef, useEffect, cloneElement } from "react";
 import { ExtraIcons } from "./icons";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
+import { FLAGS } from "../../lib/flags";
+import {
+  VoiceRecorder,
+  isSupported as voiceSupported,
+  filenameForMime,
+  isTooShort,
+  isTooLarge,
+} from "../../lib/recorder";
+import { openBotVoiceChat } from "../../lib/telegram";
+import type { Bookmark } from "../../lib/api";
+
+type VoiceState = "idle" | "recording" | "sending";
+
+function fmtElapsed(sec: number): string {
+  const m = Math.floor(sec / 60);
+  return `${m}:${String(sec % 60).padStart(2, "0")}`;
+}
 
 export function QuickCreateSheet({
   onDismiss,
   onSave,
+  onToast,
+  onUploadMedia,
+  onCreated,
 }: {
   onDismiss?: () => void;
   onSave?: (text: string) => void | Promise<void>;
+  onToast?: (msg: string) => void;
+  /** FLAGS.VOICE_UPLOAD: загрузка голоса на бэк. undefined = голос выключен. */
+  onUploadMedia?: (file: Blob, opts: { kind: "audio"; duration: number; filename: string }) => Promise<Bookmark>;
+  /** Голос создал заметку — родитель открывает её (покажет «Brain слушает…»). */
+  onCreated?: (bm: Bookmark) => void;
 }) {
   const [v, setV] = useState("");
   const [saving, setSaving] = useState(false);
   const enabled = v.trim().length > 0 && !saving;
+
+  // Голос (ti0): доступен только при флаге, наличии обработчика и поддержке записи в окружении.
+  const voiceOn = FLAGS.VOICE_UPLOAD && !!onUploadMedia;
+  const canRecord = voiceOn && voiceSupported();
+  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
+  const [elapsed, setElapsed] = useState(0);
+  const recorderRef = useRef<VoiceRecorder | null>(null);
+  const aliveRef = useRef(true);
+
+  // Закрытие листа во время записи → освобождаем микрофон (иначе индикатор висит / iOS блокирует).
+  useEffect(() => {
+    aliveRef.current = true;
+    return () => {
+      aliveRef.current = false;
+      recorderRef.current?.abort();
+      recorderRef.current = null;
+    };
+  }, []);
+
+  // Таймер записи (mm:ss).
+  useEffect(() => {
+    if (voiceState !== "recording") return;
+    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
+    return () => clearInterval(t);
+  }, [voiceState]);
 
   const save = async () => {
     if (!enabled) return;
@@ -20,9 +72,76 @@ export function QuickCreateSheet({
     try {
       await onSave?.(v.trim());
     } finally {
-      setSaving(false);
+      if (aliveRef.current) setSaving(false);
     }
   };
+
+  const startRecording = async () => {
+    if (!canRecord) {
+      // Запись недоступна (старый iOS WebView) → фолбэк в чат бота, иначе тост.
+      if (voiceOn && !openBotVoiceChat()) onToast?.("Запись голоса доступна в чате с ботом");
+      return;
+    }
+    const rec = new VoiceRecorder();
+    recorderRef.current = rec;
+    try {
+      await rec.start();
+      if (!aliveRef.current) {
+        rec.abort();
+        return;
+      }
+      setElapsed(0);
+      setVoiceState("recording");
+    } catch {
+      recorderRef.current = null;
+      onToast?.("Нет доступа к микрофону");
+    }
+  };
+
+  const stopRecording = async () => {
+    const rec = recorderRef.current;
+    if (!rec) return;
+    setVoiceState("sending");
+    let result;
+    try {
+      result = await rec.stop();
+    } catch {
+      recorderRef.current = null;
+      if (aliveRef.current) setVoiceState("idle");
+      return;
+    }
+    recorderRef.current = null;
+    const { blob, mimeType, durationSec } = result;
+    if (isTooShort(blob, durationSec)) {
+      onToast?.("Слишком короткая запись");
+      if (aliveRef.current) setVoiceState("idle");
+      return;
+    }
+    if (isTooLarge(blob)) {
+      onToast?.("Запись слишком большая (максимум 25 МБ)");
+      if (aliveRef.current) setVoiceState("idle");
+      return;
+    }
+    try {
+      const bm = await onUploadMedia!(blob, {
+        kind: "audio",
+        duration: durationSec,
+        filename: filenameForMime(mimeType),
+      });
+      onCreated?.(bm); // родитель закроет лист и откроет заметку
+    } catch (e) {
+      onToast?.(e instanceof Error ? e.message : "Не удалось отправить голос");
+      if (aliveRef.current) setVoiceState("idle");
+    }
+  };
+
+  const micClick = () => {
+    if (voiceState === "recording") void stopRecording();
+    else if (voiceState === "idle") void startRecording();
+  };
+
+  const recording = voiceState === "recording";
+  const sending = voiceState === "sending";
 
   return (
     <BottomSheet onDismiss={onDismiss}>
@@ -77,6 +196,7 @@ export function QuickCreateSheet({
         </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 4px 6px" }}>
+          {/* Документы (📎) — фаза 2, пока disabled. */}
           <button
             aria-label="вложение"
             disabled
@@ -95,35 +215,67 @@ export function QuickCreateSheet({
           >
             {cloneElement(ExtraIcons.paperclip, { size: 16, sw: 1.6 } as never)}
           </button>
+
+          {/* Голос (🎤) — запись / стоп. */}
           <button
-            aria-label="голос"
-            disabled
+            aria-label={recording ? "остановить запись" : "записать голос"}
+            onClick={micClick}
+            disabled={!voiceOn || sending}
             style={{
               width: 36,
               height: 36,
               borderRadius: 12,
-              background: "rgba(234,227,207,0.4)",
-              border: "1px solid var(--border-1)",
-              color: "var(--fg-4)",
-              cursor: "not-allowed",
+              background: recording
+                ? "var(--brand-primary)"
+                : voiceOn
+                  ? "rgba(122,156,122,0.12)"
+                  : "rgba(234,227,207,0.4)",
+              border: recording ? "1px solid var(--brand-primary)" : "1px solid var(--border-1)",
+              color: recording ? "var(--fg-on-brand)" : voiceOn ? "var(--brand-primary)" : "var(--fg-4)",
+              cursor: voiceOn && !sending ? "pointer" : "not-allowed",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
+              transition: "background 160ms var(--ease-out), color 160ms var(--ease-out)",
             }}
           >
             {cloneElement(ExtraIcons.mic, { size: 16, sw: 1.6 } as never)}
           </button>
+
           <span
             style={{
               flex: 1,
-              fontFamily: "var(--font-display)",
-              fontStyle: "italic",
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              fontFamily: recording || sending ? "var(--font-ui)" : "var(--font-display)",
+              fontStyle: recording || sending ? "normal" : "italic",
               fontSize: 12,
-              color: "var(--fg-3)",
-              letterSpacing: 0,
+              color: recording ? "var(--brand-primary)" : "var(--fg-3)",
+              letterSpacing: recording || sending ? "-0.005em" : 0,
             }}
           >
-            Вложения — в боте
+            {recording ? (
+              <>
+                <span
+                  style={{
+                    width: 7,
+                    height: 7,
+                    borderRadius: "50%",
+                    background: "var(--brand-primary)",
+                    animation: "mPulse 1.6s ease-in-out infinite",
+                    flexShrink: 0,
+                  }}
+                />
+                Идёт запись · {fmtElapsed(elapsed)}
+              </>
+            ) : sending ? (
+              "Отправляю…"
+            ) : voiceOn ? (
+              "Запиши голос или прикрепи в боте"
+            ) : (
+              "Вложения — в боте"
+            )}
           </span>
         </div>
 

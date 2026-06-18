@@ -24,11 +24,11 @@ function StatCard({ n, label, delta }: { n: string | number; label: string; delt
       <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, fontSize: 28, color: "var(--brand-primary)", lineHeight: 1, letterSpacing: "-0.01em" }}>
         {n}
       </div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: 10, color: "var(--fg-3)", letterSpacing: ".08em", marginTop: 6, fontWeight: 500 }}>
+      <div style={{ fontFamily: "var(--font-ui)", fontSize: 11.5, color: "var(--fg-3)", letterSpacing: "-0.005em", marginTop: 6, fontWeight: 500 }}>
         {label}
       </div>
       {delta && (
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 9.5, color: delta.startsWith("+") ? "var(--semantic-success, #5A8A56)" : "var(--fg-3)", letterSpacing: ".06em", marginTop: 4 }}>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: delta.startsWith("+") ? "var(--semantic-success, #5A8A56)" : "var(--fg-3)", letterSpacing: "-0.005em", marginTop: 4 }}>
           {delta}
         </div>
       )}
@@ -93,7 +93,7 @@ function SettingsCard({ rows }: { rows: SettingRow[] }) {
           </span>
           <span style={{ flex: 1 }}>{it.label}</span>
           {it.value && (
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>{it.value}</span>
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--fg-3)", letterSpacing: "-0.005em" }}>{it.value}</span>
           )}
           {/* всё в разработке — единый бейдж вместо тоглов/чевронов */}
           <span
@@ -168,7 +168,7 @@ export function MeScreen({ onComingSoon }: { onComingSoon: () => void }) {
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontSize: 16, fontWeight: 500, letterSpacing: "-0.02em", color: "var(--fg-1)" }}>{handle}</div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em", marginTop: 2 }}>
+          <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--fg-3)", letterSpacing: "-0.005em", marginTop: 2 }}>
             {me ? `${me.bookmarks_count} закладок · ${since}` : "Загрузка…"}
           </div>
         </div>

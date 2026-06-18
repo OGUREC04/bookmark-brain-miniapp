@@ -84,7 +84,7 @@ export function BookmarkCard({
 
       {isTask && task_progress && (
         <div style={{ margin: "0 0 12px" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-3)", marginBottom: 6, letterSpacing: ".04em" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", fontFamily: "var(--font-ui)", fontSize: 10.5, color: "var(--fg-3)", marginBottom: 6, letterSpacing: "-0.005em" }}>
             <span>{task_progress.done}/{task_progress.total} готово</span>
           </div>
           <div style={{ height: 3, background: "rgba(234,227,207,0.7)", borderRadius: 2, overflow: "hidden" }}>
@@ -93,7 +93,7 @@ export function BookmarkCard({
         </div>
       )}
 
-      <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: ".06em", marginBottom: tags.length ? 10 : 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, fontFamily: "var(--font-ui)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: "-0.005em", marginBottom: tags.length ? 10 : 0 }}>
         {url && <span style={{ color: "var(--fg-2)", fontWeight: 500 }}>{url}</span>}
         {url && <span style={{ width: 2.5, height: 2.5, borderRadius: "50%", background: "var(--fg-4)" }} />}
         <span>{time}</span>

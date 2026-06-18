@@ -6,11 +6,21 @@ import { cloneElement, useState, useRef, useCallback, useEffect } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
+import { BottomSheet } from "../components/ds/sheetPrimitives";
 import { api, type Bookmark } from "../lib/api";
-import { hostOf } from "../lib/adapters";
+import { hostOf, isWorkingStatus } from "../lib/adapters";
 import { formatRelativeDate } from "../lib/formatters";
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
+
+/** Русское склонение по числу: 1 связь, 2–4 связи, 5+ связей. */
+function pluralRu(n: number, one: string, few: string, many: string): string {
+  const m10 = n % 10;
+  const m100 = n % 100;
+  if (m10 === 1 && m100 !== 11) return one;
+  if (m10 >= 2 && m10 <= 4 && (m100 < 10 || m100 >= 20)) return few;
+  return many;
+}
 
 function openLink(url: string) {
   // Guard against javascript:/data: schemes sneaking in via stored bookmark.url.
@@ -73,8 +83,12 @@ export function DetailScreen({
   const [related, setRelated] = useState<RelatedRow[]>([]);
   const [relatedTotal, setRelatedTotal] = useState(0);
   const [showAllRelated, setShowAllRelated] = useState(false);
-  // Смена заметки — сбрасываем «показать все».
-  useEffect(() => setShowAllRelated(false), [bookmark.id]);
+  const [relatedOpen, setRelatedOpen] = useState(false); // шторка «Связано» (вход — чип под метой)
+  // Смена заметки — сбрасываем «показать все» и закрываем шторку связей.
+  useEffect(() => {
+    setShowAllRelated(false);
+    setRelatedOpen(false);
+  }, [bookmark.id]);
   useEffect(() => {
     if (!onOpenRelated) return;
     let cancelled = false;
@@ -108,7 +122,6 @@ export function DetailScreen({
   const bodyText = isUrl(bookmark.raw_text ?? "") ? "" : (bookmark.raw_text ?? "");
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(bodyText);
-  const [saving, setSaving] = useState(false);
   const taRef = useRef<HTMLTextAreaElement | null>(null);
   const autoGrow = useCallback(() => {
     const el = taRef.current;
@@ -124,22 +137,49 @@ export function DetailScreen({
       autoGrow();
     });
   };
+  // Текст, уже отправленный на сохранение (в полёте/сохранён) — чтобы автосейв на blur
+  // и flush при размонтировании не слали один и тот же PATCH дважды (двойная AI-обработка).
+  const savingRef = useRef<string | null>(null);
+  // Автосейв: вызывается на blur текстарии. No-op если пусто/без изменений/уже сохраняем —
+  // тихо, без тостов (как Apple Notes). Ошибка — единственный тост.
   const saveEdit = async () => {
     const next = draft.trim();
-    if (!next || next === bodyText.trim() || !onSaveText) {
+    if (!next || next === bodyText.trim() || !onSaveText || savingRef.current === next) {
       setEditing(false);
       return;
     }
-    setSaving(true);
+    savingRef.current = next;
     try {
       await onSaveText(next);
       setEditing(false);
     } catch {
+      savingRef.current = null;
       onToast?.("Не удалось сохранить");
-    } finally {
-      setSaving(false);
     }
   };
+
+  // Жёсткий «Назад» (Telegram/системная кнопка) и переход на связанную заметку НЕ вызывают
+  // blur текстарии → автосейв на blur не срабатывает. Сохраняем черновик при размонтировании
+  // экрана. Через refs — cleanup читает последние значения, а не значения первого рендера.
+  const draftRef = useRef(draft);
+  draftRef.current = draft;
+  const editingRef = useRef(editing);
+  editingRef.current = editing;
+  const bodyTextRef = useRef(bodyText);
+  bodyTextRef.current = bodyText;
+  const onSaveTextRef = useRef(onSaveText);
+  onSaveTextRef.current = onSaveText;
+  useEffect(() => {
+    return () => {
+      if (!editingRef.current) return;
+      const next = draftRef.current.trim();
+      const save = onSaveTextRef.current;
+      if (!next || next === bodyTextRef.current.trim() || !save || savingRef.current === next) return;
+      savingRef.current = next;
+      // fire-and-forget: компонент уже уходит, состояние не трогаем (нет setState после unmount).
+      void save(next).catch(() => {});
+    };
+  }, []);
 
   return (
     <div style={{ padding: "4px 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
@@ -155,43 +195,87 @@ export function DetailScreen({
       </div>
 
       <div style={{ padding: "0 22px" }}>
-        {/* meta line: src · time + inline #tags + ai-processing */}
-        <div style={{ display: "flex", alignItems: "baseline", gap: 10, flexWrap: "wrap", marginBottom: 10 }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".04em" }}>{meta}</span>
-          {(bookmark.tags ?? []).map((t) => (
-            <span
-              key={t.id}
-              style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--brand-primary-press)", letterSpacing: "-0.005em" }}
+        {/* верх-утилита: дата слева · связи справа (вход в шторку), тонкий разделитель */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, paddingBottom: 10, marginBottom: 14, borderBottom: "0.5px solid var(--border-1)" }}>
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--fg-3)", letterSpacing: "-0.005em" }}>{meta}</span>
+          {onOpenRelated && relatedTotal > 0 ? (
+            <button
+              type="button"
+              onClick={() => setRelatedOpen(true)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 5,
+                background: "transparent",
+                border: "none",
+                padding: 0,
+                color: "var(--brand-primary-press)",
+                fontFamily: "var(--font-ui)",
+                fontSize: 12.5,
+                fontWeight: 500,
+                letterSpacing: "-0.005em",
+                cursor: "pointer",
+                flexShrink: 0,
+                WebkitTapHighlightColor: "transparent",
+              }}
             >
-              #{t.name}
+              {cloneElement(Icons.link, { size: 13, sw: 1.8 } as never)}
+              {relatedTotal} {pluralRu(relatedTotal, "связь", "связи", "связей")}
+            </button>
+          ) : bookmark.ai_status === "failed" ? (
+            <span style={{ fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--fg-3)", letterSpacing: "-0.005em", flexShrink: 0 }}>
+              {bookmark.content_type === "voice" ? "Не распознал" : "Ошибка обработки"}
             </span>
-          ))}
-          <span
-            onClick={() => onToast?.("Теги · в разработке")}
-            style={{
-              fontFamily: "var(--font-ui)",
-              fontSize: 13,
-              fontWeight: 400,
-              cursor: "pointer",
-              color: "var(--fg-3)",
-              borderBottom: "1px dashed var(--border-2)",
-              lineHeight: 1.1,
-              letterSpacing: "-0.005em",
-            }}
-          >
-            +тег
-          </span>
-          {bookmark.ai_status !== "completed" && (
-            <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 12, color: "var(--brand-primary-press)", letterSpacing: 0 }}>
-              Brain думает…
+          ) : isWorkingStatus(bookmark.ai_status) ? (
+            <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 12, color: "var(--brand-primary-press)", flexShrink: 0 }}>
+              {bookmark.content_type === "voice" ? "Brain слушает…" : "Brain думает…"}
             </span>
-          )}
+          ) : null}
         </div>
 
         {/* title — editorial display italic */}
-        <h1 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, fontSize: 28, letterSpacing: "-0.01em", color: "var(--fg-1)", lineHeight: 1.15, margin: "0 0 14px" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontWeight: 500, fontSize: 28, letterSpacing: "-0.01em", color: "var(--fg-1)", lineHeight: 1.15, margin: "0 0 12px" }}>
           {title}
         </h1>
+
+        {/* теги — тихим текстом (без решёток/плашек), «добавить» пунктиром */}
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 12.5, color: "var(--fg-3)", letterSpacing: "-0.005em", marginBottom: 18 }}>
+          {(bookmark.tags ?? []).map((t) => (
+            <span key={t.id}>{t.name} · </span>
+          ))}
+          <span
+            onClick={() => onToast?.("Теги · в разработке")}
+            style={{ cursor: "pointer", borderBottom: "1px dashed var(--border-2)" }}
+          >
+            добавить
+          </span>
+        </div>
+
+        {/* AI «Brain» — тезисы (key_ideas) буллетами, наверху после заголовка (формат B) */}
+        {bookmark.key_ideas && bookmark.key_ideas.length > 0 && (
+          <div
+            style={{
+              background: "rgba(218,234,218,0.45)",
+              border: "0.5px solid rgba(122,156,122,0.22)",
+              borderRadius: 14,
+              padding: "12px 14px",
+              marginBottom: 20,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 9, fontFamily: "var(--font-ui)", fontSize: 11.5, fontWeight: 600, color: "var(--brand-primary-press)", letterSpacing: "-0.005em" }}>
+              {cloneElement(ExtraIcons.sparkle, { size: 13, sw: 1.7 } as never)}
+              Brain
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 7 }}>
+              {bookmark.key_ideas.map((idea, i) => (
+                <div key={i} style={{ display: "flex", gap: 8, fontFamily: "var(--font-ui)", fontSize: 13.5, color: "var(--fg-1)", lineHeight: 1.4, letterSpacing: "-0.005em" }}>
+                  <span style={{ color: "var(--brand-primary)", flexShrink: 0, marginTop: 1 }}>•</span>
+                  <span>{idea.charAt(0).toUpperCase() + idea.slice(1)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* summary — UI sans */}
         {bookmark.summary && (
@@ -228,76 +312,40 @@ export function DetailScreen({
           )}
 
         {canEditText && (
-          <div style={{ margin: "0 0 22px" }}>
+          <div style={{ margin: "0 0 24px" }}>
             {editing ? (
-              <>
-                <textarea
-                  ref={taRef}
-                  value={draft}
-                  onChange={(e) => {
-                    setDraft(e.target.value);
-                    autoGrow();
-                  }}
-                  aria-label="текст заметки"
-                  placeholder="добавь текст…"
-                  style={{
-                    width: "100%",
-                    boxSizing: "border-box",
-                    border: "1px solid var(--border-1)",
-                    borderRadius: 14,
-                    background: "rgba(234,227,207,0.35)",
-                    padding: "12px 14px",
-                    outline: "none",
-                    resize: "none",
-                    overflow: "hidden",
-                    fontFamily: "var(--font-ui)",
-                    fontSize: 14.5,
-                    lineHeight: 1.55,
-                    color: "var(--fg-1)",
-                    caretColor: "var(--brand-primary)",
-                    letterSpacing: "-0.005em",
-                  }}
-                />
-                <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                  <button
-                    onClick={saveEdit}
-                    disabled={saving}
-                    style={{
-                      flex: 1,
-                      padding: "10px 16px",
-                      borderRadius: 12,
-                      background: "var(--brand-primary)",
-                      color: "var(--fg-on-brand)",
-                      border: "none",
-                      fontFamily: "var(--font-ui)",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      cursor: saving ? "not-allowed" : "pointer",
-                      opacity: saving ? 0.6 : 1,
-                    }}
-                  >
-                    {saving ? "Сохраняю…" : "Готово"}
-                  </button>
-                  <button
-                    onClick={() => setEditing(false)}
-                    disabled={saving}
-                    style={{
-                      padding: "10px 16px",
-                      borderRadius: 12,
-                      background: "transparent",
-                      color: "var(--fg-2)",
-                      border: "1px solid var(--border-1)",
-                      fontFamily: "var(--font-ui)",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      cursor: "pointer",
-                    }}
-                  >
-                    Отмена
-                  </button>
-                </div>
-              </>
+              // Текстарея «как проза»: прозрачная, без рамки, тем же шрифтом, что и
+              // read-view → нет визуального «режима». Курсор = единственный признак
+              // правки (Apple Notes). Сохранение — на blur (автосейв), без Save/Cancel.
+              <textarea
+                ref={taRef}
+                value={draft}
+                onChange={(e) => {
+                  setDraft(e.target.value);
+                  autoGrow();
+                }}
+                onBlur={saveEdit}
+                aria-label="текст заметки"
+                placeholder="Добавь текст…"
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  border: "none",
+                  background: "transparent",
+                  padding: 0,
+                  outline: "none",
+                  resize: "none",
+                  overflow: "hidden",
+                  fontFamily: "var(--font-ui)",
+                  fontSize: 14.5,
+                  lineHeight: 1.6,
+                  color: "var(--fg-1)",
+                  caretColor: "var(--brand-primary)",
+                  letterSpacing: "-0.005em",
+                }}
+              />
             ) : (
+              // Тап по тексту = правка (без кнопки «Изменить»).
               <div
                 onClick={startEdit}
                 role="button"
@@ -308,58 +356,20 @@ export function DetailScreen({
                     startEdit();
                   }
                 }}
-                style={{ cursor: "text", display: "flex", alignItems: "flex-start", gap: 8 }}
+                style={{ cursor: "text" }}
               >
                 {bodyText ? (
-                  <p style={{ flex: 1, fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: 0, whiteSpace: "pre-wrap" }}>
+                  <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
                     {bodyText}
                   </p>
                 ) : (
-                  <span style={{ flex: 1, fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>
+                  <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>
                     + добавить текст
                   </span>
                 )}
-                <span style={{ flexShrink: 0, marginTop: 2, fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 500, color: "var(--brand-primary)" }}>
-                  Изменить
-                </span>
               </div>
             )}
           </div>
-        )}
-
-        {/* AI «brain» block — key ideas joined by · */}
-        {bookmark.key_ideas && bookmark.key_ideas.length > 0 && (
-          <div
-            style={{
-              background: "rgba(218,234,218,0.45)",
-              border: "0.5px solid rgba(122,156,122,0.22)",
-              borderRadius: 14,
-              padding: "12px 14px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              marginBottom: 22,
-            }}
-          >
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--brand-primary-press)", letterSpacing: ".04em", fontWeight: 500 }}>
-              brain
-            </div>
-            <div style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-1)", lineHeight: 1.5, letterSpacing: 0 }}>
-              {bookmark.key_ideas.join(" · ")}
-            </div>
-          </div>
-        )}
-
-        {/* FLAGS.CONNECTIONS — «Связано»: похожие заметки (тап → переход) */}
-        {onOpenRelated && (
-          <RelatedSection
-            rows={related}
-            total={relatedTotal}
-            showingAll={showAllRelated}
-            onOpen={onOpenRelated}
-            onShowAll={() => setShowAllRelated(true)}
-            onOpenGraph={onOpenGraph}
-          />
         )}
 
         {/* open source + copy link */}
@@ -414,6 +424,25 @@ export function DetailScreen({
           </div>
         )}
       </div>
+
+      {/* Шторка «Связано» — открывается чипом под метой. Список связей + вход в граф. */}
+      {relatedOpen && onOpenRelated && (
+        <BottomSheet onDismiss={() => setRelatedOpen(false)}>
+          <div style={{ padding: "2px 18px 10px" }}>
+            <RelatedSection
+              rows={related}
+              total={relatedTotal}
+              showingAll={showAllRelated}
+              onOpen={(id) => {
+                setRelatedOpen(false);
+                onOpenRelated(id);
+              }}
+              onShowAll={() => setShowAllRelated(true)}
+              onOpenGraph={onOpenGraph ? () => { setRelatedOpen(false); onOpenGraph(); } : undefined}
+            />
+          </div>
+        </BottomSheet>
+      )}
     </div>
   );
 }

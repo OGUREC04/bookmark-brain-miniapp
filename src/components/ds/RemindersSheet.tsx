@@ -42,7 +42,7 @@ export function RemindersSheet({
                   borderRadius: 999,
                   background: "var(--brand-primary)",
                   color: "var(--fg-on-brand)",
-                  fontFamily: "var(--font-mono)",
+                  fontFamily: "var(--font-ui)",
                   fontSize: 11,
                   fontWeight: 600,
                   display: "inline-flex",
@@ -130,7 +130,7 @@ function ReminderRow({
       <Avatar {...avatar} size={38} />
       <div style={{ flex: 1, minWidth: 0 }}>
         {/* время — НАД текстом, акцентом */}
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: ".04em", fontWeight: 600, marginBottom: 2 }}>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--brand-primary)", letterSpacing: "-0.005em", fontWeight: 600, marginBottom: 2 }}>
           {time}
         </div>
         <span

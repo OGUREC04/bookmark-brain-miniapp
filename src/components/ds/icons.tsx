@@ -80,9 +80,7 @@ export const ExtraIcons = {
   thoughts: (
     <Icon>
       <path d="M7.9 20A9 9 0 1 0 4 16.1L2 22z" />
-      <circle cx="8" cy="12" r="1" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="12" r="1" fill="currentColor" stroke="none" />
-      <circle cx="16" cy="12" r="1" fill="currentColor" stroke="none" />
+      <path d="M8 10.5h8M8 13.5h5" />
     </Icon>
   ),
 };

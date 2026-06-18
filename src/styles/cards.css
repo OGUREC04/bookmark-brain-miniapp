@@ -88,10 +88,10 @@
 .card-feed__task-meta {
   display: flex;
   justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: 10.5px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
   color: var(--fg-3);
-  letter-spacing: 0.04em;
+  letter-spacing: -0.005em;
   margin-bottom: 6px;
 }
 .card-feed__task-bar {
@@ -111,10 +111,10 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 10.5px;
   color: var(--fg-3);
-  letter-spacing: 0.06em;
+  letter-spacing: -0.005em;
 }
 .card-feed:has(.card-feed__tags) .card-feed__meta { margin-bottom: 10px; }
 .card-feed__src { color: var(--fg-2); font-weight: 500; }
@@ -227,10 +227,10 @@
   font-family: var(--font-ui);
 }
 .chat-time {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 11px;
   color: var(--fg-3);
-  letter-spacing: 0.04em;
+  letter-spacing: -0.005em;
   flex-shrink: 0;
 }
 
@@ -254,11 +254,11 @@
   text-overflow: ellipsis;
 }
 .chat-src {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-style: normal;
   font-size: 11px;
   color: var(--fg-3);
-  letter-spacing: 0.04em;
+  letter-spacing: -0.005em;
   margin-right: 6px;
 }
 .chat-trailing {
@@ -274,7 +274,7 @@
   border-radius: 999px;
   background: var(--brand-primary);
   color: var(--fg-on-brand);
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 11px;
   font-weight: 500;
   display: flex;
@@ -289,11 +289,10 @@
   padding: 12px 0 10px;
 }
 .chat-day-sep__label {
-  font-family: var(--font-mono);
+  font-family: var(--font-ui);
   font-size: 10px;
   color: var(--fg-3);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  letter-spacing: -0.005em;
   font-weight: 500;
   padding: 4px 12px;
   background: rgba(234, 227, 207, 0.7);

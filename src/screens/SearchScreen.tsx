@@ -38,10 +38,10 @@ function SearchResultCard({
     >
       <div
         style={{
-          fontFamily: "var(--font-mono)",
+          fontFamily: "var(--font-ui)",
           fontSize: 10.5,
           color: "var(--fg-3)",
-          letterSpacing: ".06em",
+          letterSpacing: "-0.005em",
           marginBottom: 6,
           display: "flex",
           alignItems: "center",
@@ -253,15 +253,14 @@ export function SearchScreen({ onBack, onOpen }: { onBack: () => void; onOpen: (
               alignItems: "center",
               gap: 8,
               marginBottom: 8,
-              fontFamily: "var(--font-mono)",
-              fontSize: 10,
-              letterSpacing: ".14em",
-              textTransform: "uppercase",
+              fontFamily: "var(--font-ui)",
+              fontSize: 11.5,
+              letterSpacing: "-0.005em",
               color: "var(--ai-suggest-fg)",
-              fontWeight: 500,
+              fontWeight: 600,
             }}
           >
-            <Glyph ch="✦" size={12} /> ответ по сохранённому
+            <Glyph ch="✦" size={12} /> Ответ по сохранённому
           </div>
           <p
             style={{

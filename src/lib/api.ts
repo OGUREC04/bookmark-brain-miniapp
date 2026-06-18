@@ -67,26 +67,22 @@ async function doFetch(path: string, options: RequestInit, token: string): Promi
   });
 }
 
-async function request<T>(
-  path: string,
-  options: RequestInit = {}
-): Promise<T> {
+/**
+ * Общий цикл авторизованного запроса: токен → fetch → retry-on-401 → разбор ошибки.
+ * `fetcher` сам решает, какие заголовки слать: JSON-вызовы ставят Content-Type через doFetch,
+ * multipart — НЕ ставит (чтобы браузер сам проставил multipart/form-data + boundary).
+ */
+async function withAuth<T>(fetcher: (token: string) => Promise<Response>): Promise<T> {
   let token = await getToken();
-  let res = await doFetch(path, options, token);
+  let res = await fetcher(token);
 
   // Retry once on 401: clear cached token, request a fresh one, replay.
   if (res.status === 401) {
     authToken = null;
-    try {
-      token = await getToken();
-    } catch (err) {
-      // initData rejected — propagate so UI can show "restart from bot" CTA.
-      throw err;
-    }
-    res = await doFetch(path, options, token);
+    token = await getToken(); // initData отвергнут → AuthExpiredError пробрасывается в UI
+    res = await fetcher(token);
     if (res.status === 401) {
-      // Still 401 after fresh auth — initData is dead.
-      throw new AuthExpiredError();
+      throw new AuthExpiredError(); // всё ещё 401 после свежей авторизации — initData мёртв
     }
   }
 
@@ -96,6 +92,21 @@ async function request<T>(
     throw new Error(err.detail || "Request failed");
   }
   return res.json();
+}
+
+// JSON-запрос (Content-Type: application/json выставляет doFetch).
+async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
+  return withAuth<T>((token) => doFetch(path, options, token));
+}
+
+/**
+ * Multipart-запрос: вызывает fetch НАПРЯМУЮ (НЕ doFetch) и НЕ ставит Content-Type —
+ * иначе хардкод application/json из doFetch перебил бы boundary FormData, и бэк не распарсил бы файл.
+ */
+async function requestRaw<T>(path: string, body: FormData, method = "POST"): Promise<T> {
+  return withAuth<T>((token) =>
+    fetch(path, { method, body, headers: { Authorization: `Bearer ${token}` } }),
+  );
 }
 
 // Types
@@ -133,6 +144,11 @@ export interface Bookmark {
 
   // Phase 2 — structured content
   structured_data?: TaskListData | null;
+
+  // Voice/media (тикет ti0): transcription есть в схеме бэка; ai_error пока НЕ в ответе бэка —
+  // в UI на него НЕ полагаемся (показываем общий текст ошибки), поле задел на будущее.
+  transcription?: string | null;
+  ai_error?: string | null;
 }
 
 export interface TaskItem {
@@ -301,6 +317,28 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ source: "miniapp", raw_text: text }),
     });
+  },
+
+  /** Голосовой ввод (тикет ti0, фаза 1): загрузка аудио из Mini App. Возвращает заметку
+   *  с ai_status="transcribing" (дальше поллинг по ai_status). filename ОБЯЗАТЕЛЕН —
+   *  бэк определяет формат и нужен ли транскод по суффиксу. Multipart через requestRaw. */
+  uploadMedia(
+    file: Blob,
+    opts: {
+      kind?: "audio" | "document";
+      caption?: string;
+      duration?: number;
+      title?: string;
+      filename?: string;
+    } = {},
+  ): Promise<Bookmark> {
+    const fd = new FormData();
+    fd.append("file", file, opts.filename ?? "voice.webm");
+    if (opts.kind) fd.append("kind", opts.kind);
+    if (opts.caption) fd.append("caption", opts.caption);
+    if (opts.duration !== undefined) fd.append("duration", String(opts.duration));
+    if (opts.title) fd.append("title", opts.title);
+    return requestRaw<Bookmark>("/api/v1/bookmarks/upload", fd);
   },
 
   getBookmark(id: string): Promise<Bookmark> {

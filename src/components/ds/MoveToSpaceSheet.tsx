@@ -71,7 +71,7 @@ export function MoveToSpaceSheet({
               <span style={{ flex: 1, fontSize: 14.5, fontWeight: 500, letterSpacing: "-0.01em", color: "var(--fg-1)" }}>
                 {s.name}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: ".06em" }}>
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: "-0.005em" }}>
                 {s.count}
               </span>
               {on && (

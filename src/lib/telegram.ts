@@ -44,6 +44,8 @@ interface TelegramWebApp {
   ready: () => void;
   expand: () => void;
   close: () => void;
+  openLink: (url: string, options?: { try_instant_view?: boolean }) => void;
+  openTelegramLink: (url: string) => void;
   onEvent: (eventType: string, handler: () => void) => void;
   offEvent: (eventType: string, handler: () => void) => void;
   MainButton: {
@@ -160,6 +162,26 @@ export function initTelegramApp(): void {
     app.expand();
   }
   applyTheme();
+}
+
+// Username бота для deep-link iOS-фолбэка голоса (тикет ti0). Из VITE_BOT_USERNAME.
+const BOT_USERNAME = (import.meta.env.VITE_BOT_USERNAME as string | undefined)?.replace(/^@/, "");
+
+/**
+ * iOS-фолбэк голосового ввода: если запись в WebView недоступна (старый iOS),
+ * открыть чат бота, где голос уже работает. true = открыли; false = username не задан
+ * (UI покажет тост). Предпочитаем нативный openTelegramLink (как tg.openLink в DetailScreen).
+ */
+export function openBotVoiceChat(): boolean {
+  if (!BOT_USERNAME) return false;
+  const url = `https://t.me/${BOT_USERNAME}?start=voice`;
+  const app = getTelegramWebApp();
+  if (app?.openTelegramLink) {
+    app.openTelegramLink(url);
+  } else {
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+  return true;
 }
 
 // Re-export typed handles for the rest of the app.

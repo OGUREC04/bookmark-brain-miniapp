@@ -35,10 +35,7 @@ export function RelatedSection({
     <div style={{ marginBottom: 22 }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
         <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
-          <span style={{ color: "var(--brand-primary)", display: "flex" }}>
-            {cloneElement(Icons.link, { size: 14, sw: 1.8 } as never)}
-          </span>
-          <span style={{ fontFamily: "var(--font-ui)", fontSize: 14, fontWeight: 600, color: "var(--fg-1)", letterSpacing: "-0.01em" }}>
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 600, color: "var(--fg-1)", letterSpacing: "-0.01em" }}>
             Связано
           </span>
           <span
@@ -49,7 +46,7 @@ export function RelatedSection({
               borderRadius: 999,
               background: "var(--brand-primary)",
               color: "var(--fg-on-brand)",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-ui)",
               fontSize: 10.5,
               fontWeight: 600,
               display: "inline-flex",
@@ -114,44 +111,51 @@ export function RelatedSection({
               background: "transparent",
               border: "none",
               borderBottom: "0.5px solid var(--border-1)",
-              padding: "11px 2px",
+              padding: "16px 2px",
               cursor: "pointer",
-              display: "block",
+              display: "flex",
+              alignItems: "center",
+              gap: 12,
               WebkitTapHighlightColor: "transparent",
             }}
           >
-            <div
-              style={{
-                fontFamily: "var(--font-ui)",
-                fontSize: 14,
-                fontWeight: 500,
-                color: "var(--fg-1)",
-                letterSpacing: "-0.01em",
-                lineHeight: 1.3,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {r.title}
-            </div>
-            {r.summary && (
+            <span style={{ flex: 1, minWidth: 0 }}>
               <div
                 style={{
                   fontFamily: "var(--font-ui)",
-                  fontSize: 12.5,
-                  color: "var(--fg-3)",
-                  lineHeight: 1.35,
-                  marginTop: 2,
-                  display: "-webkit-box",
-                  WebkitLineClamp: 1,
-                  WebkitBoxOrient: "vertical",
+                  fontSize: 14.5,
+                  fontWeight: 500,
+                  color: "var(--fg-1)",
+                  letterSpacing: "-0.01em",
+                  lineHeight: 1.3,
                   overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
-                {r.summary}
+                {r.title}
               </div>
-            )}
+              {r.summary && (
+                <div
+                  style={{
+                    fontFamily: "var(--font-ui)",
+                    fontSize: 12.5,
+                    color: "var(--fg-3)",
+                    lineHeight: 1.4,
+                    marginTop: 4,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 1,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                  }}
+                >
+                  {r.summary}
+                </div>
+              )}
+            </span>
+            <span style={{ color: "var(--fg-4)", display: "flex", flexShrink: 0 }}>
+              {cloneElement(Icons.arrow, { size: 15, sw: 1.6 } as never)}
+            </span>
           </button>
         ))}
       </div>

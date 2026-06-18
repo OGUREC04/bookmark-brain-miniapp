@@ -41,7 +41,7 @@ export function formatRelativeDate(iso: string): string {
   const diffDays = Math.floor((today.getTime() - target.getTime()) / 86_400_000);
 
   if (diffDays === 0) return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-  if (diffDays === 1) return "вчера";
+  if (diffDays === 1) return "Вчера";
   if (diffDays > 1 && diffDays < 7) return DAYS_SHORT[d.getDay()];
   return formatDate(iso);
 }
@@ -62,8 +62,8 @@ export function formatDaySeparator(iso: string): string {
   const target = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.floor((today.getTime() - target.getTime()) / 86_400_000);
 
-  if (diffDays === 0) return "сегодня";
-  if (diffDays === 1) return "вчера";
+  if (diffDays === 0) return "Сегодня";
+  if (diffDays === 1) return "Вчера";
 
   const date = `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}`;
   if (diffDays > 1 && diffDays < 7) return `${date} ${DAYS_SHORT[d.getDay()]}`;

@@ -195,6 +195,13 @@
   to   { opacity: 1; }
 }
 
+/* Плавное появление графа (opacity only — контейнер графа не родитель sticky,
+   но держим opacity, чтобы не трогать transform на всякий случай). */
+@keyframes graphIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .screen-fade { animation: none; }
 }
@@ -368,116 +375,6 @@
 }
 .notif-pill__count {
   font-weight: 600;
-}
-
-/* ─── BottomNav — DS frosted pill (reference_app/MiniApp.jsx BottomTab) ───
-   Our IA (5 cells incl. central FAB), DS styling verbatim:
-   container pill r999, idle = icon-only, active = sage-pill + label. */
-
-.bottom-nav {
-  position: fixed;
-  bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  left: 12px;
-  right: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-around;
-  padding: 8px;
-  z-index: var(--z-sticky, 10);
-
-  background: rgba(255, 252, 246, 0.7);
-  -webkit-backdrop-filter: blur(28px) saturate(180%);
-  backdrop-filter: blur(28px) saturate(180%);
-  border: 1px solid rgba(255, 255, 255, 0.7);
-  border-radius: 999px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.7) inset,
-    0 -1px 0 rgba(0, 0, 0, 0.04) inset,
-    0 16px 40px rgba(60, 40, 25, 0.12);
-  max-width: 460px;
-  margin: 0 auto;
-}
-
-@media (prefers-color-scheme: dark) {
-  .theme-dark .bottom-nav,
-  [data-color-scheme="dark"] .bottom-nav {
-    background: rgba(34, 30, 28, 0.7);
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow:
-      0 1px 0 rgba(255, 255, 255, 0.08) inset,
-      0 16px 40px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* Tab — idle: icon-only, fg-3, transparent. */
-.nav-tab {
-  appearance: none;
-  border: 0;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 8px 12px;
-  border-radius: 999px;
-  background: transparent;
-  color: var(--fg-3);
-  font-family: var(--font-ui);
-  font-size: 12.5px;
-  font-weight: 500;
-  letter-spacing: -0.005em;
-  cursor: pointer;
-  transition: all 220ms var(--ease-out);
-}
-.nav-tab:focus-visible {
-  outline: 2px solid var(--brand-primary, #7A9C7A);
-  outline-offset: 2px;
-}
-
-/* Label hidden when idle, shown when active (DS). */
-.nav-tab__label {
-  display: none;
-}
-
-/* Active: sage bg + white + label. */
-.nav-tab.is-active {
-  background: var(--brand-primary, #7A9C7A);
-  color: var(--fg-on-brand, #fff);
-  padding: 8px 16px;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.2) inset,
-    0 2px 6px rgba(122, 156, 122, 0.2);
-}
-.nav-tab.is-active .nav-tab__label {
-  display: inline;
-}
-
-/* Central FAB — our IA addition. Sage primary (DS button family). */
-.nav-fab {
-  appearance: none;
-  border: 0;
-  flex: 0 0 auto;
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  margin: 0 4px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: var(--brand-primary, #7A9C7A);
-  color: var(--fg-on-brand, #fff);
-  cursor: pointer;
-  box-shadow:
-    0 1px 0 rgba(255, 255, 255, 0.2) inset,
-    0 4px 12px rgba(122, 156, 122, 0.3);
-  transition: transform 200ms var(--ease-out);
-}
-.nav-fab:active {
-  transform: translateY(1px);
-}
-.nav-fab:focus-visible {
-  outline: 2px solid var(--brand-primary, #7A9C7A);
-  outline-offset: 2px;
 }
 
 /* Task editor inline input — visible text selection over the field. */

@@ -112,7 +112,7 @@ export function SheetTitle({
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
         {right && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, color: "var(--fg-3)", letterSpacing: ".06em", fontWeight: 500 }}>
+          <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, color: "var(--fg-3)", letterSpacing: "-0.005em", fontWeight: 500 }}>
             {right}
           </span>
         )}

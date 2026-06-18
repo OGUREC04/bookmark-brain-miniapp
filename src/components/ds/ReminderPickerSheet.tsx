@@ -401,10 +401,10 @@ export function ReminderPickerSheet({
                     <span style={{ fontSize: 15, fontWeight: 600, letterSpacing: "-0.01em", lineHeight: 1.2 }}>{s.label}</span>
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)",
+                        fontFamily: "var(--font-ui)",
                         fontSize: 12,
                         color: on ? "var(--brand-primary-press)" : "var(--fg-3)",
-                        letterSpacing: ".04em",
+                        letterSpacing: "-0.005em",
                       }}
                     >
                       {s.sub}
@@ -475,10 +475,10 @@ export function ReminderPickerSheet({
                   background: "var(--brand-primary-tint)",
                   border: "1px solid rgba(122,156,122,0.35)",
                   color: "var(--brand-primary-press)",
-                  fontFamily: "var(--font-mono)",
+                  fontFamily: "var(--font-ui)",
                   fontSize: 14,
                   fontWeight: 600,
-                  letterSpacing: ".04em",
+                  letterSpacing: "-0.005em",
                 }}
               >
                 {pad2(hour)}:{pad2(minute)}

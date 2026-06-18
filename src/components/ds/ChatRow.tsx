@@ -209,10 +209,10 @@ export function ChatRow({
           )}
           <span
             style={{
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-ui)",
               fontSize: 11,
               color: timeNow ? "var(--brand-primary)" : "var(--fg-3)",
-              letterSpacing: ".04em",
+              letterSpacing: "-0.005em",
               flexShrink: 0,
             }}
           >
@@ -244,12 +244,12 @@ export function ChatRow({
             {src && (
               <span
                 style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 11,
+                  fontFamily: "var(--font-ui)",
+                  fontSize: 11.5,
                   color: "var(--fg-3)",
-                  letterSpacing: ".04em",
+                  letterSpacing: "-0.005em",
                   padding: "1px 6px",
-                  borderRadius: 4,
+                  borderRadius: 5,
                   background: "rgba(60,40,25,0.05)",
                   marginRight: 6,
                 }}
@@ -269,7 +269,7 @@ export function ChatRow({
                 borderRadius: 999,
                 background: "var(--brand-primary)",
                 color: "var(--fg-on-brand)",
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-ui)",
                 fontSize: 11,
                 fontWeight: 500,
                 display: "flex",
@@ -317,10 +317,10 @@ export function DaySeparator({ label }: { label: ReactNode }) {
     <div style={{ display: "flex", justifyContent: "center", padding: "12px 0 10px" }}>
       <span
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 10,
+          fontFamily: "var(--font-ui)",
+          fontSize: 11.5,
           color: "var(--fg-3)",
-          letterSpacing: ".12em",
+          letterSpacing: "0",
           fontWeight: 500,
           padding: "4px 12px",
           background: "rgba(234,227,207,0.7)",

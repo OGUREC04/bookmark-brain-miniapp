@@ -76,12 +76,11 @@ export function Calendar({
             key={w}
             style={{
               textAlign: "center",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-ui)",
               fontSize: 10,
               fontWeight: 500,
               color: "var(--fg-3)",
-              textTransform: "uppercase",
-              letterSpacing: ".06em",
+              letterSpacing: "-0.005em",
               padding: "2px 0",
             }}
           >

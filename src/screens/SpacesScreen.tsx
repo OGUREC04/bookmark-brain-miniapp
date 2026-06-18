@@ -64,7 +64,7 @@ function SpaceTile({ folder, onClick }: { folder: Folder; onClick?: () => void }
         <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
           <span style={{ fontSize: 14.5, fontWeight: 500, color: "var(--fg-1)", letterSpacing: "-0.01em" }}>{folder.name}</span>
         </div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: ".06em", fontWeight: 500 }}>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: "-0.005em", fontWeight: 500 }}>
           {folder.bookmarks_count} закладок
         </div>
       </div>

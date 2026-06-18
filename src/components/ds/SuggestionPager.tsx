@@ -63,10 +63,10 @@ function SourceChip({ letter, tone = "sage", domain }: Source) {
       </span>
       <span
         style={{
-          fontFamily: "var(--font-mono)",
+          fontFamily: "var(--font-ui)",
           fontSize: 10.5,
           color: "var(--fg-2)",
-          letterSpacing: ".04em",
+          letterSpacing: "-0.005em",
           whiteSpace: "nowrap",
           overflow: "hidden",
           textOverflow: "ellipsis",
@@ -138,10 +138,10 @@ function SuggestionSlide({ text, sources = [], meta, onAccept }: SuggestionItem)
             <span
               style={{
                 flexShrink: 0,
-                fontFamily: "var(--font-mono)",
+                fontFamily: "var(--font-ui)",
                 fontSize: 10.5,
                 color: "var(--ai-suggest-fg)",
-                letterSpacing: ".06em",
+                letterSpacing: "-0.005em",
                 padding: "4px 8px",
                 borderRadius: 999,
                 background: "rgba(255,252,246,0.6)",
@@ -157,11 +157,10 @@ function SuggestionSlide({ text, sources = [], meta, onAccept }: SuggestionItem)
       <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: "auto", position: "relative" }}>
         <span
           style={{
-            fontFamily: "var(--font-mono)",
+            fontFamily: "var(--font-ui)",
             fontSize: 10.5,
             color: "var(--ai-suggest-fg)",
-            letterSpacing: ".08em",
-            textTransform: "uppercase",
+            letterSpacing: "-0.005em",
             fontWeight: 500,
           }}
         >
@@ -214,13 +213,12 @@ export function SuggestionPager({ items, onDismissAll }: { items: SuggestionItem
           style={{
             fontFamily: "var(--font-ui)",
             fontSize: 11,
-            letterSpacing: ".12em",
-            textTransform: "uppercase",
+            letterSpacing: "-0.005em",
             color: "var(--ai-suggest-fg)",
             fontWeight: 500,
           }}
         >
-          подсказки
+          Подсказки
         </div>
         <span style={{ flex: 1 }} />
         {items.length > 1 && (

@@ -15,34 +15,70 @@ const SPACES: TabDef = { id: "spaces", label: "Пространства", icon: 
 const GRAPH: TabDef = { id: "graph", label: "Граф", icon: Icons.graph };
 const ME: TabDef = { id: "me", label: "Я", icon: Icons.user };
 
-// Таб «Граф» виден только при включённых связях (showGraph) — флаг знает App,
-// ds-слой его не импортит.
-const tabsBase: TabDef[] = [MYSLI, SPACES, ME];
-const tabsWithGraph: TabDef[] = [MYSLI, SPACES, GRAPH, ME];
+// Табы «Пространства»/«Граф» видны только при включённых флагах (showSpaces/
+// showGraph) — флаги знает App, ds-слой их не импортит.
 
-/** Иконка-таб без подписи (Instagram-стиль): активная — акцент + жирнее. */
-function NavIcon({ tab, active, onClick }: { tab: TabDef; active: boolean; onClick: () => void }) {
+/** Иконка-таб без подписи (Instagram-стиль): активная — акцент + жирнее.
+    disabled — фича не готова: приглушаем (fg-4), вешаем бейдж «Скоро», тап не переключает (даёт хинт). */
+function NavIcon({
+  tab,
+  active,
+  disabled = false,
+  badge,
+  onClick,
+}: {
+  tab: TabDef;
+  active: boolean;
+  disabled?: boolean;
+  badge?: string;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
-      aria-label={tab.label}
+      aria-label={disabled ? `${tab.label} — скоро` : tab.label}
       aria-current={active ? "page" : undefined}
+      aria-disabled={disabled || undefined}
       style={{
+        position: "relative",
         flex: 1,
         background: "transparent",
         border: "none",
-        cursor: "pointer",
+        cursor: disabled ? "default" : "pointer",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         height: 50,
         padding: 0,
-        color: active ? "var(--brand-primary)" : "var(--fg-3)",
+        color: disabled ? "var(--fg-4)" : active ? "var(--brand-primary)" : "var(--fg-3)",
         transition: "color 200ms var(--ease-out)",
         WebkitTapHighlightColor: "transparent",
       }}
     >
-      {cloneElement(tab.icon, { size: 25, sw: active ? 2.1 : 1.7 } as never)}
+      {cloneElement(tab.icon, { size: 24, sw: active ? 1.8 : 1.5 } as never)}
+      {badge && (
+        <span
+          style={{
+            position: "absolute",
+            top: 2,
+            left: "50%",
+            transform: "translateX(-50%)",
+            padding: "1px 5px",
+            borderRadius: 999,
+            background: "var(--brand-primary)",
+            color: "var(--fg-on-brand)",
+            fontFamily: "var(--font-ui)",
+            fontSize: 9,
+            fontWeight: 600,
+            letterSpacing: "-0.005em",
+            lineHeight: 1.45,
+            whiteSpace: "nowrap",
+            pointerEvents: "none",
+          }}
+        >
+          {badge}
+        </span>
+      )}
     </button>
   );
 }
@@ -79,7 +115,7 @@ function CreateBtn({ onClick }: { onClick: () => void }) {
           boxShadow: "0 2px 8px rgba(122,156,122,0.35)",
         }}
       >
-        {cloneElement(Icons.plus, { size: 20, sw: 2.2 } as never)}
+        {cloneElement(Icons.plus, { size: 20, sw: 2 } as never)}
       </span>
     </button>
   );
@@ -89,19 +125,32 @@ export function BottomNav({
   current,
   onChange,
   onFab,
+  onLocked,
   showGraph = false,
+  showSpaces = false,
 }: {
   current: NavTab;
   onChange: (t: NavTab) => void;
   onFab: () => void;
+  /** Тап по выключенному табу (фича не готова) — показать хинт «скоро». */
+  onLocked?: () => void;
   /** Показывать таб «Граф» (FLAGS.CONNECTIONS — знает App). */
   showGraph?: boolean;
+  /** «Пространства» включены (FLAGS.SPACES — знает App). Если нет — таб виден, но disabled + «Скоро». */
+  showSpaces?: boolean;
 }) {
-  const tabs = showGraph ? tabsWithGraph : tabsBase;
+  // «Пространства» показываем ВСЕГДА; пока фича не готова (showSpaces=false) — disabled + бейдж «Скоро».
+  // «Граф» — скрыт целиком, пока выключен (showGraph).
+  const items: { tab: TabDef; disabled: boolean }[] = [
+    { tab: MYSLI, disabled: false },
+    { tab: SPACES, disabled: !showSpaces },
+    ...(showGraph ? [{ tab: GRAPH, disabled: false }] : []),
+    { tab: ME, disabled: false },
+  ];
   // «+» (создать) — по центру бара (Instagram-стиль): слева половина табов, потом +, потом остальные.
-  const mid = Math.ceil(tabs.length / 2);
-  const left = tabs.slice(0, mid);
-  const right = tabs.slice(mid);
+  const mid = Math.ceil(items.length / 2);
+  const left = items.slice(0, mid);
+  const right = items.slice(mid);
   return (
     <nav
       style={{
@@ -114,20 +163,35 @@ export function BottomNav({
         backdropFilter: "blur(24px) saturate(180%)",
         WebkitBackdropFilter: "blur(24px) saturate(180%)",
         borderTop: "1px solid var(--border-1)",
-        paddingBottom: "env(safe-area-inset-bottom, 0px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "space-around",
-        padding: "0 8px",
-        paddingBlock: "2px",
+        // padding ПЕРВЫМ, paddingBottom ПОСЛЕ — иначе shorthand затирает safe-area
+        // (был баг: навбар прилипал к низу, env(safe-area) игнорировался).
+        padding: "6px 8px",
+        paddingBottom: "calc(env(safe-area-inset-bottom, 0px) + 10px)",
       }}
     >
-      {left.map((t) => (
-        <NavIcon key={t.id} tab={t} active={current === t.id} onClick={() => onChange(t.id)} />
+      {left.map(({ tab, disabled }) => (
+        <NavIcon
+          key={tab.id}
+          tab={tab}
+          active={current === tab.id}
+          disabled={disabled}
+          badge={disabled ? "Скоро" : undefined}
+          onClick={() => (disabled ? onLocked?.() : onChange(tab.id))}
+        />
       ))}
       <CreateBtn onClick={onFab} />
-      {right.map((t) => (
-        <NavIcon key={t.id} tab={t} active={current === t.id} onClick={() => onChange(t.id)} />
+      {right.map(({ tab, disabled }) => (
+        <NavIcon
+          key={tab.id}
+          tab={tab}
+          active={current === tab.id}
+          disabled={disabled}
+          badge={disabled ? "Скоро" : undefined}
+          onClick={() => (disabled ? onLocked?.() : onChange(tab.id))}
+        />
       ))}
     </nav>
   );

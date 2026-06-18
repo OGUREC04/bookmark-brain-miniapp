@@ -50,7 +50,7 @@ function BellPillCompact({ count = 0, onClick }: { count?: number; onClick?: () 
             borderRadius: 999,
             background: "var(--brand-primary)",
             color: "var(--fg-on-brand)",
-            fontFamily: "var(--font-mono)",
+            fontFamily: "var(--font-ui)",
             fontSize: 11,
             fontWeight: 600,
             display: "flex",
@@ -128,7 +128,7 @@ function FilterChips({
             {it.glyph && <Glyph ch={it.glyph} size={13} color={on ? "currentColor" : "var(--brand-primary)"} />}
             {it.label}
             {it.id !== "fav" && c > 0 && (
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: 11, opacity: 0.7, fontWeight: 500 }}>{c}</span>
+              <span style={{ fontFamily: "var(--font-ui)", fontSize: 11, opacity: 0.7, fontWeight: 500 }}>{c}</span>
             )}
           </button>
         );

@@ -251,7 +251,7 @@ export function TaskRow({
               border: `1px solid ${overdue ? "rgba(196,80,60,0.25)" : "rgba(122,156,122,0.25)"}`,
               color: overdue ? "#C2554D" : "var(--brand-primary-press)",
               cursor: "pointer",
-              fontFamily: "var(--font-mono)",
+              fontFamily: "var(--font-ui)",
               fontSize: 10.5,
               fontWeight: 500,
               letterSpacing: ".02em",

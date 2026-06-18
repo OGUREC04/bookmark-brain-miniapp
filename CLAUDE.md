@@ -33,6 +33,12 @@ npm run build      # tsc (строгий) + vite build — прод-сборка
 
 `src/lib/api.ts` имеет DEV-only fallback: если `getInitData()` пустой (запуск в браузере, не в Telegram) — берётся `localStorage.__dev_init_data`. Бэкенд принимает `dev:<id>` только за тройным guard'ом (см. монорепо `docs/ARCHITECTURE.md` → «DEV-only auth bypass»). В проде это безвредно — бэк отбивает все `dev:` без guard'а.
 
+### Превью без Telegram (визуальная работа)
+
+Отдельный Vite для превью поднимается на **:5180** (`.claude/launch.json` в рабочей папке Claude; :3000 занят Telegram-вьюхой через ngrok). Открыть `http://localhost:5180` **в обычной вкладке браузера**, в консоли один раз: `localStorage.setItem("__dev_init_data","dev:9999999999999"); location.reload()` — подтянутся данные синтетического dev-юзера.
+
+**Не использовать встроенную панель превью Claude для этого приложения** — её webview «двоит» весь интерфейс (двойное изображение со сдвигом, видно даже на сплошных элементах без блюра: аватарках, кнопке «+», тексте). Это артефакт рендера панели на конкретной машине, НЕ баг кода: в обычном браузере и в Telegram чисто. Приглушение `backdrop-filter` НЕ помогает (двоятся и не-стеклянные элементы). Лечение одно — смотреть превью в обычной вкладке браузера. См. memory `preview-panel-blur-ghosting`.
+
 ## 4 решения, которые НЕЛЬЗЯ ломать по незнанию
 
 1. **Навигация state-driven, роутера НЕТ.** Навигация = `useState` в `App.tsx`:
@@ -153,13 +159,57 @@ Telegram WebView (нужен hard-close).
 
 **СОСТОЯНИЕ ФЛАГОВ/ДЕПЛОЯ (важно после компакта):** `FLAGS.TEXT_EDIT` и `FLAGS.CONNECTIONS`
 в `src/lib/flags.ts` — в РЕПО `false`, ЛОКАЛЬНО (working tree, uncommitted) `true` для теста.
-Бэк правки текста (8uu/0rn) и связей — в `main` монорепо, **НЕ задеплоен на VPS**. Деплой —
-действие юзера (runbook в истории): бэк→VPS + `alembic upgrade head` + `backfill_bookmark_links`,
-потом флаги `true`+коммит+выкатить фронт. `ms0` (P0) ротация пароля VPS — на юзере.
+`FLAGS.SPACES=false` (фича не готова — таб «Пространства» виден, но **disabled + бейдж «Скоро»**,
+тап даёт тост «Пространства · скоро»; действие «В пространство» в ⋮ по-прежнему скрыто). Бэк правок
+текста (8uu/0rn) и связей — в `main` монорепо, **НЕ задеплоен на VPS**. Деплой — действие юзера:
+бэк→VPS + `alembic upgrade head` + `backfill_bookmark_links`, потом флаги `true`+коммит+фронт.
 
-**Остаётся (next, см. лог):** recurrence «Повторять» (тикет `8r4`, P3 бэклог, +бэк). Бэклог:
-создание пространства (`8g1`); SuggestionCard (`ntn`); facet-чипы (`0u7`); медиа QuickCreate
-(`ti0`); контекст ссылок — бэк (`z9q`). _ActionSheet close: решено — «Закрыть» зелёным текстом._
+**СЕССИЯ визуал-полиша (uncommitted, build зелёный, флаги локально true):** шапка ленты
+scroll-edge; навбар Instagram-стиль + фикс safe-area; граф (цвета/прочее=серый, легенда+счётчик
+в панели, анти-наложение подписей, ховер, авто-фит+двойной тап, тап→карточка); «Связано»
+просторнее; баннер графа = sage-пилюля; **ИИ-шрифт убран** (моно→ui, заглавные «Сегодня/Контент/
+Brain», без КАПС); иконки тоньше, «Мысли»=линии вместо точек. **Детальный экран переделан
+(вариант C):** правка тела по тапу + автосейв (нет «Изменить»/Save/Cancel); верх-утилита (дата
+слева · «N связей» справа + черта); теги тихим текстом («…· добавить», без решёток); **Brain
+наверху** = карточка-тезисы буллетами (key_ideas, с заглавной); **Связи = чип «N связей» →
+BottomSheet** (RelatedSection + граф); инлайн-«Связано» из тела убран. **Подтверждён юзером
+(2026-06-16).** Жёсткий «Назад»/уход в поле правки — flush при размонтировании сделан в
+`DetailScreen` (через refs + `savingRef`-дедуп против двойного PATCH), НЕ в App. blur-автосейв
+покрывает внутреннюю кнопку «назад».
+
+**Превью:** отдельный Vite :5180, смотреть в ОБЫЧНОЙ вкладке браузера (НЕ панель Claude — двоит
+тяжёлый блюр, см. memory). Данные: `localStorage.__dev_init_data="dev:9999999999999"`. Скриншот
+детали через preview-инструмент виснет (фоновый поллинг) — проверять глазами.
+
+**Бэк (монорепо):** баннер «устарел» только при ≥8 новых связях — коммит `0b41e97` (edge_count +
+миграция `b1c2d3e4f5a6`), **НЕ запушен**; backend перезапущен из сессии (умрёт с сессией → `start.bat`).
+
+**ГОЛОС `ti0` (в работе, 2026-06-17, фаза 1 — только голос):** план+критика через planner+tdd-guide
+(workflow), решения: ai_error=вариант А (общий текст, бэк-поле потом), после 201 открываем DetailScreen,
+vitest заведён, флаг `VOICE_UPLOAD` (репо false/локально true). **TDD-ядро ГОТОВО+зелёное (45 тестов,
+build ок):** `src/lib/recorder.ts` (MediaRecorder: pickMimeType/filenameForMime/isSupported/start/stop/
+abort+освобождение мика/guard-валидаторы), `api.ts` (`withAuth` рефактор + `requestRaw` multipart-safe
+[fetch напрямую, без JSON Content-Type!] + `uploadMedia` + поля Bookmark transcription/ai_error),
+`adapters.isWorkingStatus` (ловит transcribing/extracting — иначе поллинг зависнет). vitest-инфра:
+`vitest.config.ts`, `src/test-setup.ts` (мок MediaRecorder/getUserMedia), tsconfig excludes тесты.
+**UI-слой ГОТОВ (2026-06-17, build + 45 тестов зелёные):** flags.ts `VOICE_UPLOAD` (репо false/локально
+true); telegram.ts `openTelegramLink`+`openBotVoiceChat` (iOS-фолбэк; `VITE_BOT_USERNAME` в `.env`/
+`.env.example`, дев=bookmarkbrain_dev_bot); QuickCreateSheet 🎤 (запись/таймер/abort при закрытии/
+валидаторы/тосты); App.tsx (проводка onUploadMedia/onToast/onCreated→openDetail + поллинг через
+isWorkingStatus, отвязан от FLAGS.TEXT_EDIT); DetailScreen «Brain слушает…»/«Не распознал». Контракт
+`POST /api/v1/bookmarks/upload`. **Локальный caveat:** транскод webm→ogg на бэке требует ffmpeg в
+окружении воркера — если его нет, ai_status=failed (это инфра, не фронт-баг). **Перед коммитом:**
+VOICE_UPLOAD→false в репо (как TEXT_EDIT/CONNECTIONS).
+
+**Остаётся:** перерисовка иконок (предложить превью вариантов); коммит фронта когда флаги разрулим.
+**Сделано 2026-06-16:** детальный экран (вариант C) подтверждён; flush черновика при жёстком «Назад»
+(`DetailScreen`); мёртвый CSS `.bottom-nav` удалён (`layout.css` v2-nav + `styles.css` v1-nav);
+БТ-07 UC-7.7 обновлён (тап-правка/автосейв/flush); **шрифт-свип завершён** — mono→ui + убрана
+ИИ-разрядка (≥.04em→-0.005em) + КАПС у дат/лейблов/счётчиков в 16 файлах (экраны + DS + cards.css).
+Функц. моно цифр времени (`TimeWheel`) оставлен; `Calendar` дни недели Пн/Вт; `SuggestionPager` +
+chat-day-sep де-КАПС. Бэклог: recurrence (`8r4`), пространства (`8g1`), SuggestionCard (`ntn`),
+facet-чипы (`0u7`), голос/медиа в Mini App (`ti0` — бэк ГОТОВ (PR #15, `POST /bookmarks/upload`),
+фронт ждёт; бриф `docs/prd/MINIAPP-MEDIA-UPLOAD.md`), контекст ссылок (`z9q`).
 
 ## Жизненный цикл фичи + БТ
 

@@ -232,6 +232,21 @@ export function deriveKind(b: Bookmark): ThoughtKind {
   return "other";
 }
 
+/**
+ * Заметка ещё в фоновой AI-обработке (не финал) — для поллинга в App.
+ * Голос стартует с "transcribing", документы — с "extracting", далее общий
+ * pipeline (pending → processing) → терминал. Терминальные (completed/partial/
+ * failed/completed_no_embedding) → false. БЕЗ этого статуса поллинг голоса завис бы.
+ */
+export function isWorkingStatus(status: string): boolean {
+  return (
+    status === "pending" ||
+    status === "processing" ||
+    status === "transcribing" ||
+    status === "extracting"
+  );
+}
+
 /** Прогресс тасклиста или null если bookmark — не tasklist. */
 export function deriveTaskProgress(b: Bookmark): TaskProgress | null {
   const sd = b.structured_data;

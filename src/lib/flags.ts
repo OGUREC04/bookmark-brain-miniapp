@@ -16,4 +16,18 @@ export const FLAGS = {
    * Бриф: bookmark-brain/docs/prd/CONNECTIONS-MINIAPP.md.
    */
   CONNECTIONS: false,
+
+  /**
+   * Пространства (Spaces) — фича не готова. Скрывает таб «Пространства» и пункт
+   * «В пространство» в шторке действий. Включить, когда фича будет доделана.
+   */
+  SPACES: false,
+
+  /**
+   * Голосовой ввод в Mini App (тикет ti0, фаза 1): кнопка 🎤 в QuickCreate, запись через
+   * MediaRecorder → POST /bookmarks/upload. Бэк (3sr/бт-12) в main, требует деплоя
+   * (S3 + ffmpeg в воркере + Yandex STT). В РЕПО = false, локально временно true.
+   * Бриф: bookmark-brain/docs/prd/MINIAPP-MEDIA-UPLOAD.md.
+   */
+  VOICE_UPLOAD: false,
 } as const;

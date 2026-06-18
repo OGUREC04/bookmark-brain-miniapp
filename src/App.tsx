@@ -25,7 +25,7 @@ import {
 } from "./components/ds/Sheets";
 import { api, type Bookmark, type Folder } from "./lib/api";
 import { FLAGS } from "./lib/flags";
-import { targetOf, groupReminders } from "./lib/adapters";
+import { targetOf, groupReminders, isWorkingStatus } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
 
 type RemRow = {
@@ -224,12 +224,12 @@ export function App() {
     return () => back.offClick(onClick);
   }, [overlayOpen]);
 
-  // FLAGS.TEXT_EDIT (тикет 0rn): пока открытая заметка обрабатывается AI (после правки текста
-  // или свежее сохранение) — поллим, пока ai_status не станет терминальным, и обновляем detail.
+  // Поллинг обработки открытой заметки — ИНФРАСТРУКТУРА, не фича (потому без флаг-гейта):
+  // пока ai_status рабочий (transcribing/extracting/pending/processing — isWorkingStatus) —
+  // обновляем detail, пока не станет терминальным. Нужен и правке текста (0rn), и голосу (ti0).
+  // Раньше ловил только pending/processing → голосовая заметка (старт "transcribing") зависала.
   useEffect(() => {
-    if (!FLAGS.TEXT_EDIT || !detailBookmark) return;
-    const working = detailBookmark.ai_status === "pending" || detailBookmark.ai_status === "processing";
-    if (!working) return;
+    if (!detailBookmark || !isWorkingStatus(detailBookmark.ai_status)) return;
     let cancelled = false;
     const id = detailBookmark.id;
     const timer = setInterval(async () => {
@@ -237,7 +237,7 @@ export function App() {
         const fresh = await api.getBookmark(id);
         if (cancelled) return;
         replaceDetail(fresh);
-        if (fresh.ai_status !== "pending" && fresh.ai_status !== "processing") {
+        if (!isWorkingStatus(fresh.ai_status)) {
           clearInterval(timer);
           reload();
         }
@@ -361,9 +361,14 @@ export function App() {
         <BottomNav
           current={tab}
           showGraph={FLAGS.CONNECTIONS}
+          showSpaces={FLAGS.SPACES}
           onChange={(t) => {
             hapticImpact("light");
             setTab(t);
+          }}
+          onLocked={() => {
+            hapticImpact("light");
+            setToast("Пространства · скоро");
           }}
           onFab={() => {
             hapticImpact("light");
@@ -386,7 +391,7 @@ export function App() {
               if (detailBookmark?.id === sheet.bookmark.id) void refreshDetail(sheet.bookmark.id);
             })
           }
-          onMove={() => setSheet({ type: "moveToSpace", bookmark: sheet.bookmark })}
+          onMove={FLAGS.SPACES ? () => setSheet({ type: "moveToSpace", bookmark: sheet.bookmark }) : undefined}
           onDelete={() =>
             runAction(async () => {
               await api.deleteBookmark(sheet.bookmark.id);
@@ -481,6 +486,14 @@ export function App() {
               reload();
             })
           }
+          onToast={setToast}
+          // FLAGS.VOICE_UPLOAD (тикет ti0): загрузка голоса. undefined = голос выключен.
+          onUploadMedia={FLAGS.VOICE_UPLOAD ? (file, opts) => api.uploadMedia(file, opts) : undefined}
+          onCreated={(bm) => {
+            closeSheet();
+            reload();
+            openDetail(bm); // откроет заметку с «Brain слушает…», поллинг обновит
+          }}
         />
       )}
 

@@ -2,7 +2,7 @@
 import { cloneElement } from "react";
 import { ExtraIcons } from "./icons";
 import { Glyph } from "./atoms";
-import { BottomSheet, SheetCloseBtn } from "./sheetPrimitives";
+import { BottomSheet } from "./sheetPrimitives";
 
 export interface SheetTarget {
   id: string;
@@ -12,13 +12,13 @@ export interface SheetTarget {
 }
 
 export function ActionSheet({
-  target,
   onDismiss,
   onRemind,
   onStar,
   onMove,
   onDelete,
 }: {
+  /** Заметка-цель (id для действий). Шапку убрали — поле для совместимости вызова. */
   target: SheetTarget;
   onDismiss?: () => void;
   onRemind?: () => void;
@@ -34,58 +34,10 @@ export function ActionSheet({
   ] as const;
   return (
     <BottomSheet onDismiss={onDismiss}>
-      <div
-        style={{
-          margin: "0 16px 6px",
-          padding: "10px 14px",
-          background: "rgba(234,227,207,0.45)",
-          border: "1px solid var(--border-1)",
-          borderRadius: 14,
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-        }}
-      >
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #8FA888 0%, #4A6648 100%)",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontFamily: "var(--font-ui)",
-            fontWeight: 500,
-            fontSize: 13,
-          }}
-        >
-          {target.letter}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 13,
-              fontWeight: 500,
-              color: "var(--fg-1)",
-              letterSpacing: "-0.01em",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {target.title}
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--fg-3)", letterSpacing: ".06em" }}>
-            {target.src}
-          </div>
-        </div>
-        {onDismiss && <SheetCloseBtn onClick={onDismiss} />}
-      </div>
-
+      {/* Без шапки с названием заметки: шторка открывается из ⋮ на конкретной
+          заметке, контекст и так понятен; закрытие — тап по фону / свайп. */}
       <div style={{ padding: "4px 6px 4px" }}>
-        {items.map((it) => (
+        {items.filter((it) => it.on).map((it) => (
           <button
             key={it.id}
             onClick={it.on}
