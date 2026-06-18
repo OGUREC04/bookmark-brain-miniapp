@@ -135,7 +135,7 @@ export function GraphScreen({
 
   // ── full (полный граф по кнопке + кэш раскладки) ──
   const [full, setFull] = useState<FullState>({ phase: "idle" });
-  const buildFull = useCallback(async () => {
+  const buildFull = useCallback(async (manual = false) => {
     setFull({ phase: "loading" });
     try {
       const g = await api.getGraph();
@@ -153,7 +153,10 @@ export function GraphScreen({
           }
         }
       }
-      setFull({ phase: "ready", data, needsSave: !cached, stale: g.stale });
+      // manual = пользователь явно нажал «Обновить граф» → баннер «появились новые
+      // связи» больше не нужен (данные только что перезагружены; раскладка
+      // досохранится в handleEngineStop). Авто-загрузка уважает реальный g.stale.
+      setFull({ phase: "ready", data, needsSave: !cached, stale: manual ? false : g.stale });
     } catch {
       setFull({ phase: "error" });
     }
@@ -392,7 +395,7 @@ export function GraphScreen({
       {mode === "full" && full.phase === "ready" && full.stale && (
         <div style={{ margin: "0 16px 10px", display: "flex", justifyContent: "center" }}>
           <button
-            onClick={buildFull}
+            onClick={() => buildFull(true)}
             style={{
               display: "inline-flex",
               alignItems: "center",
@@ -424,7 +427,7 @@ export function GraphScreen({
       {mode === "full" && full.phase === "error" && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 24px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>Не удалось построить граф</span>
-          <button onClick={buildFull} style={primaryBtn}>Повторить</button>
+          <button onClick={() => buildFull()} style={primaryBtn}>Повторить</button>
         </div>
       )}
 
