@@ -5,17 +5,21 @@
 export const FLAGS = {
   /**
    * Inline-редактирование текста заметок и текста напоминаний.
-   * Бэк (тикеты 8uu/0rn) — в main, НЕ задеплоен на прод. До деплоя = false.
+   * Бэк реализован и покрыт тестами (подтверждено backend-сессией 2026-06-21):
+   *   - напоминание: PATCH /api/v1/reminders/{id} с полем `text` (8uu)
+   *   - заметка: PATCH /api/v1/bookmarks/{id} с `raw_text` + materiality-gate 0.85 (0rn)
+   * ПРОДА НЕТ → включено для дева (true).
    * Брифы: bookmark-brain/docs/prd/REMINDER-TEXT-EDIT.md, BOOKMARK-TEXT-EDIT.md.
    */
-  TEXT_EDIT: false,
+  TEXT_EDIT: true,
 
   /**
    * Связи между заметками (Connections, Phase 5A): секция «Связано», таб «Граф»,
-   * семантический режим поиска. Бэк-слой связей в main, НЕ задеплоен на прод. До деплоя = false.
+   * семантический режим поиска. Бэк-слой связей в main. ПРОДА НЕТ → включено для дева (true).
+   * ⚠️ Рёбра строит backfill_bookmark_links на бэке — если граф пустой, прогнать его на деве.
    * Бриф: bookmark-brain/docs/prd/CONNECTIONS-MINIAPP.md.
    */
-  CONNECTIONS: false,
+  CONNECTIONS: true,
 
   /**
    * Пространства (Spaces) — фича не готова. Скрывает таб «Пространства» и пункт
