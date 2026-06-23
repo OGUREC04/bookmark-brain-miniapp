@@ -1,17 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRecurringRaw, fmtRecurrence, canCreateRecurring } from "./recurring";
-
-describe("buildRecurringRaw", () => {
-  it("строит канонную строку для бэк-парсера", () => {
-    expect(buildRecurringRaw("полить цветы", 10, 0)).toBe("полить цветы каждый день в 10:00");
-  });
-  it("триммит текст и паддит время", () => {
-    expect(buildRecurringRaw("  таблетки  ", 9, 5)).toBe("таблетки каждый день в 09:05");
-  });
-  it("полночь паддится как 00:00", () => {
-    expect(buildRecurringRaw("спать", 0, 0)).toBe("спать каждый день в 00:00");
-  });
-});
+import { fmtRecurrence, canCreateRecurring } from "./recurring";
 
 describe("fmtRecurrence", () => {
   it("HH:MM для показа", () => {

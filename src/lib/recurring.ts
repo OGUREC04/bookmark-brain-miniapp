@@ -1,15 +1,10 @@
 /* Чистая логика регулярных напоминаний (MVP = ежедневно).
-   Бэк парсит сырой текст «<текст> каждый день в HH:MM» (recurrence_parser, daily-only),
-   поэтому фронт из структурного ввода (текст + час:минута) строит эту каноничную строку —
-   парсер её гарантированно понимает. Здесь же — формат для показа и валидация. */
+   Mini App шлёт структурно (text + hour + minute) в POST /api/v1/recurring — бэк НЕ
+   парсит (парсер recurrence_parser остался только для бот-команды /repeat). Здесь —
+   формат для показа серии и клиентская валидация перед отправкой. */
 
 function pad2(n: number): string {
   return n < 10 ? `0${n}` : String(n);
-}
-
-/** Каноничная строка для POST /api/v1/recurring (бэк-парсер её точно распознает). */
-export function buildRecurringRaw(text: string, hour: number, minute: number): string {
-  return `${text.trim()} каждый день в ${pad2(hour)}:${pad2(minute)}`;
 }
 
 /** Подпись серии для списка: «каждый день в HH:MM». */

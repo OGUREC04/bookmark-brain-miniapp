@@ -28,7 +28,7 @@ import { api, type Bookmark, type Folder, type Recurring } from "./lib/api";
 import { FLAGS } from "./lib/flags";
 import { targetOf, groupReminders, isWorkingStatus } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
-import { buildRecurringRaw, fmtRecurrence } from "./lib/recurring";
+import { fmtRecurrence } from "./lib/recurring";
 
 type RemRow = {
   id: string;
@@ -482,7 +482,7 @@ export function App() {
           }
           onCreateDaily={(text, hour, minute) =>
             runAction(async () => {
-              await api.recurring.create(buildRecurringRaw(text, hour, minute));
+              await api.recurring.create(text, hour, minute);
               setSheet({ type: "reminders" });
             }, "Не удалось создать регулярное напоминание")
           }

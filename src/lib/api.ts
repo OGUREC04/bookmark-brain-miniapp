@@ -518,16 +518,17 @@ export const api = {
     },
   },
 
-  // Регулярные (ежедневные) напоминания. POST шлёт сырой текст «<текст> каждый день
-  // в HH:MM» — бэк парсит сам (recurrence_parser). См. docs/BACKEND-CONTEXT-miniapp.md.
+  // Регулярные (ежедневные) напоминания. Mini App шлёт СТРУКТУРНО (text+hour+minute) —
+  // бэк НЕ парсит (парсер остался для бот-команды /repeat). Так слова расписания внутри
+  // текста («полить цветы каждый день») не искажают серию. См. docs/BACKEND-CONTEXT-miniapp.md.
   recurring: {
     list(): Promise<RecurringList> {
       return request("/api/v1/recurring/");
     },
-    create(raw: string): Promise<Recurring> {
+    create(text: string, hour: number, minute: number): Promise<Recurring> {
       return request("/api/v1/recurring/", {
         method: "POST",
-        body: JSON.stringify({ raw }),
+        body: JSON.stringify({ text: text.trim(), rule: "daily", hour, minute }),
       });
     },
     stop(id: string): Promise<void> {
