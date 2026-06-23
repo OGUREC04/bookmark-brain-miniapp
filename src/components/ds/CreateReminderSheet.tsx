@@ -1,7 +1,7 @@
 /* CreateReminderSheet — создание САМОСТОЯТЕЛЬНОГО напоминания из шторки 🔔 (не из заметки).
    Два типа: «Разово» (текст + дата + время → POST /reminders, bookmark_id=null) и
    «Каждый день» (текст + время → POST /recurring, бэк daily-only). Реюз Calendar + TimeWheel. */
-import { useState, useEffect, cloneElement } from "react";
+import { useState, useEffect, useRef, cloneElement } from "react";
 import { createPortal } from "react-dom";
 import { Icons, ExtraIcons } from "./icons";
 import { BottomSheet, SheetTitle, TelegramMainButton } from "./sheetPrimitives";
@@ -11,7 +11,6 @@ import { canCreateRecurring } from "../../lib/recurring";
 
 const MON = ["янв", "фев", "мар", "апр", "мая", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
 const pad2 = (n: number) => (n < 10 ? `0${n}` : String(n));
-const cap = (s: string) => (s ? s[0].toUpperCase() + s.slice(1) : s);
 
 function dayISO(offset = 0): string {
   const t = new Date();
@@ -40,18 +39,26 @@ export function CreateReminderSheet({
   onDismiss?: () => void;
   onBack?: () => void;
   /** Разово: ISO момента (локальное → UTC) + текст. */
-  onCreateOnce: (fireAtISO: string, text: string) => void;
+  onCreateOnce: (fireAtISO: string, text: string) => void | Promise<void>;
   /** Ежедневно: текст + час/минута (App соберёт raw для бэка). */
-  onCreateDaily: (text: string, hour: number, minute: number) => void;
+  onCreateDaily: (text: string, hour: number, minute: number) => void | Promise<void>;
 }) {
   const [text, setText] = useState("");
   const [mode, setMode] = useState<Mode>("once");
-  const [date, setDate] = useState(dayISO(0));
-  const now = new Date();
-  const [hour, setHour] = useState(Math.min(23, now.getHours() + 1));
+  // Дефолт «разового» — ближайший целый час В БУДУЩЕМ. Через +1ч: на 23:xx даёт 00:00
+  // СЛЕДУЮЩЕГО дня → дата сразу = завтра, время не оказывается в прошлом (был баг
+  // Math.min(23, hour+1) → 23:00 в прошлом и кнопка молча задизейблена).
+  const soon = new Date(Date.now() + 60 * 60 * 1000);
+  const [date, setDate] = useState(
+    `${soon.getFullYear()}-${pad2(soon.getMonth() + 1)}-${pad2(soon.getDate())}`,
+  );
+  const [hour, setHour] = useState(soon.getHours());
   const [minute, setMinute] = useState(0);
   const [timeOpen, setTimeOpen] = useState(false);
   const [calOpen, setCalOpen] = useState(false);
+  // Гард от даблтапа: ref для синхронной проверки, state — для визуального disable.
+  const submittingRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
 
   // Escape закрывает поповер времени (Telegram Desktop/web).
   useEffect(() => {
@@ -70,10 +77,22 @@ export function CreateReminderSheet({
   const isToday = date === dayISO(0);
   const isTomorrow = date === dayISO(1);
 
-  const submit = () => {
-    if (!enabled) return;
-    if (mode === "once") onCreateOnce(onceISO, text.trim());
-    else onCreateDaily(text.trim(), hour, minute);
+  const submit = async () => {
+    if (submittingRef.current) return; // даблтап → второй POST
+    // Пересчитываем «в будущем» ПРЯМО СЕЙЧАС, не из замкнутого рендером enabled:
+    // форма могла провисеть открытой, и выбранное время уже стало прошлым.
+    const iso = customToISO(date, hour, minute);
+    if (mode === "once" && (!hasText || new Date(iso).getTime() <= Date.now())) return;
+    if (mode === "daily" && !canCreateRecurring(text, hour, minute)) return;
+    submittingRef.current = true;
+    setSubmitting(true);
+    try {
+      if (mode === "once") await onCreateOnce(iso, text.trim());
+      else await onCreateDaily(text.trim(), hour, minute);
+    } finally {
+      submittingRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   const seg = (m: Mode, label: string) => (
@@ -133,6 +152,7 @@ export function CreateReminderSheet({
           value={text}
           onChange={(e) => setText(e.target.value)}
           autoFocus
+          maxLength={580}
           placeholder="Напомнить о чём?"
           className="compose-input"
           style={{
@@ -213,7 +233,7 @@ export function CreateReminderSheet({
       <div style={{ padding: "16px 16px 4px" }}>
         <TelegramMainButton
           label="Создать"
-          enabled={enabled}
+          enabled={enabled && !submitting}
           onClick={submit}
           disabledHint={!hasText ? "О чём напомнить?" : "Выбери время в будущем"}
         />

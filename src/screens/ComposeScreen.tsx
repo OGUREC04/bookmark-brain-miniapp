@@ -191,7 +191,8 @@ export function ComposeScreen({
         // 100dvh (динамическая высота) — учитывает клавиатуру в WebView; на 100vh
         // низ экрана уезжал за клавиатуру → странный скролл под полем.
         height: "100dvh",
-        overflow: "hidden",
+        overflow: "clip", // clip (не hidden) — не создаёт scroll-контейнер; конвенция .app-shell
+
         display: "flex",
         flexDirection: "column",
         background: "var(--backdrop-gradient, var(--bg-page))",

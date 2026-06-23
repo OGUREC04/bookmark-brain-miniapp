@@ -140,12 +140,18 @@ export function App() {
    * user can retry). Without this every handler swallowed rejections and
    * left the UI silently stuck (flagged by code review).
    */
-  const runAction = useCallback(async (fn: () => Promise<void>) => {
+  const runAction = useCallback(async (fn: () => Promise<void>, errorMsg?: string) => {
     try {
       await fn();
       hapticNotify("success");
-    } catch {
+    } catch (e) {
       hapticNotify("error");
+      // Бэк кладёт человекочитаемый detail в Error.message (api.ts withAuth) — показываем
+      // его (напр. «Не вижу расписание…», «Слишком много регулярных»). Сетевые/общие
+      // ошибки («Failed to fetch», «Request failed») заменяем контекстным текстом.
+      const m = e instanceof Error ? e.message : "";
+      const generic = !m || m === "Request failed" || /fetch|network/i.test(m);
+      setToast(generic ? errorMsg ?? "Не удалось, попробуй ещё раз" : m);
     }
   }, []);
 
@@ -442,7 +448,11 @@ export function App() {
             runAction(async () => {
               await api.recurring.stop(id);
               setRecurring((prev) => prev.filter((x) => x.id !== id));
-            })
+              // DELETE серии отменяет и уже материализованные разовые копии (бэк) —
+              // перечитываем upcoming, иначе они висят «призраками» до переоткрытия шторки.
+              const up = await api.reminders.upcoming(50);
+              setReminders(up.items);
+            }, "Не удалось остановить серию")
           }
           onDismiss={closeSheet}
           onCancel={(id) => {
@@ -468,13 +478,13 @@ export function App() {
             runAction(async () => {
               await api.reminders.create(null, iso, { text });
               setSheet({ type: "reminders" });
-            })
+            }, "Не удалось создать напоминание")
           }
           onCreateDaily={(text, hour, minute) =>
             runAction(async () => {
               await api.recurring.create(buildRecurringRaw(text, hour, minute));
               setSheet({ type: "reminders" });
-            })
+            }, "Не удалось создать регулярное напоминание")
           }
         />
       )}
