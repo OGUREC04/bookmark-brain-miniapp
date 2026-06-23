@@ -188,7 +188,10 @@ export function ComposeScreen({
   return (
     <div
       style={{
-        minHeight: "100vh",
+        // 100dvh (динамическая высота) — учитывает клавиатуру в WebView; на 100vh
+        // низ экрана уезжал за клавиатуру → странный скролл под полем.
+        height: "100dvh",
+        overflow: "hidden",
         display: "flex",
         flexDirection: "column",
         background: "var(--backdrop-gradient, var(--bg-page))",

@@ -210,6 +210,9 @@
   opacity: 1;
 }
 
+/* Каретка ввода — бренд-цвет: в Telegram WebView дефолтная бывает белой/невидимой. */
+textarea, input, [contenteditable="true"] { caret-color: var(--brand-primary); }
+
 /* Compose: «живая» псевдо-волна записи (амплитуда НЕ от звука — бегущие бары,
    паттерн B из дизайн-ревью: дёшево, без аудио-графа в Telegram WebView). */
 @keyframes bb-wave {
