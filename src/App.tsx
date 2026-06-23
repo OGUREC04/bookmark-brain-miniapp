@@ -20,13 +20,15 @@ import {
   RemindersSheet,
   ReminderPickerSheet,
   MoveToSpaceSheet,
+  CreateReminderSheet,
   type SheetTarget,
   type SpaceOption,
 } from "./components/ds/Sheets";
-import { api, type Bookmark, type Folder } from "./lib/api";
+import { api, type Bookmark, type Folder, type Recurring } from "./lib/api";
 import { FLAGS } from "./lib/flags";
 import { targetOf, groupReminders, isWorkingStatus } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
+import { buildRecurringRaw, fmtRecurrence } from "./lib/recurring";
 
 type RemRow = {
   id: string;
@@ -53,6 +55,7 @@ type Sheet =
   | { type: "reminderPicker"; bookmark: Bookmark }
   | { type: "reminderReschedule"; reminderId: string; contextText: string; initialISO?: string | null }
   | { type: "moveToSpace"; bookmark: Bookmark }
+  | { type: "createReminder" }
   | null;
 
 export function App() {
@@ -79,6 +82,7 @@ export function App() {
   }, [toast]);
 
   const [reminders, setReminders] = useState<RemRow[]>([]);
+  const [recurring, setRecurring] = useState<Recurring[]>([]);
   // Удалённое напоминание для undo-тоста (4 сек).
   const [remUndo, setRemUndo] = useState<RemRow | null>(null);
   const remUndoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -191,6 +195,10 @@ export function App() {
         .upcoming(50)
         .then((r) => alive && setReminders(r.items))
         .catch(() => alive && setReminders([]));
+      api.recurring
+        .list()
+        .then((r) => alive && setRecurring(r.items))
+        .catch(() => alive && setRecurring([]));
     }
     if (sheet?.type === "moveToSpace") {
       api.getFolders()
@@ -428,6 +436,14 @@ export function App() {
       {sheet?.type === "reminders" && (
         <RemindersSheet
           groups={groupReminders(reminders)}
+          recurring={recurring.map((r) => ({ id: r.id, text: r.text, timeLabel: fmtRecurrence(r.hour, r.minute) }))}
+          onCreate={() => setSheet({ type: "createReminder" })}
+          onStopRecurring={(id) =>
+            runAction(async () => {
+              await api.recurring.stop(id);
+              setRecurring((prev) => prev.filter((x) => x.id !== id));
+            })
+          }
           onDismiss={closeSheet}
           onCancel={(id) => {
             const rem = reminders.find((x) => x.id === id);
@@ -441,6 +457,25 @@ export function App() {
               "Напоминание";
             setSheet({ type: "reminderReschedule", reminderId: id, contextText: ctx, initialISO: r?.fire_at ?? null });
           }}
+        />
+      )}
+
+      {sheet?.type === "createReminder" && (
+        <CreateReminderSheet
+          onDismiss={closeSheet}
+          onBack={() => setSheet({ type: "reminders" })}
+          onCreateOnce={(iso, text) =>
+            runAction(async () => {
+              await api.reminders.create(null, iso, { text });
+              setSheet({ type: "reminders" });
+            })
+          }
+          onCreateDaily={(text, hour, minute) =>
+            runAction(async () => {
+              await api.recurring.create(buildRecurringRaw(text, hour, minute));
+              setSheet({ type: "reminders" });
+            })
+          }
         />
       )}
 

@@ -216,6 +216,16 @@ VOICE_UPLOAD→false в репо (как TEXT_EDIT/CONNECTIONS). [ОБНОВЛЕ
 серифный плейсхолдер — `.bb-wave-bar`/`.compose-input` в `styles/layout.css`. Это «первое сообщение»
 будущего треда — часть фичи «заметка-как-диалог» (PRD будет в монорепо `docs/prd/NOTES-AS-CONVERSATIONS.md`).
 
+**Напоминания из шторки 🔔 — независимые + регулярные (2026-06-23, build + 60 тестов):** шторка
+напоминаний стала хабом. ＋ в шапке → `CreateReminderSheet` (текст + сегмент «Разово»/«Каждый день»
++ дата/время, реюз `Calendar`/`TimeWheel`). **Разово** → `api.reminders.create(null, iso, {text})` —
+независимое, БЕЗ заметки (бэк давно умел `bookmark_id=null`). **Каждый день** → `api.recurring.create(
+"<текст> каждый день в HH:MM")` (daily-only, бэк парсит сам). В списке секция «Регулярные» (🔁 + 🛑 =
+`api.recurring.stop`). Логика — `lib/recurring.ts` (buildRecurringRaw/fmtRecurrence/canCreateRecurring) +
+тесты. Добавлена иконка `ExtraIcons.repeat`. Не флаг-гейтед (бэк готов). Бэк-контракт: `docs/BACKEND-CONTEXT-miniapp.md`;
+БТ (монорепо): `бт-05` (разовые из шторки), `бт-13` (Mini App-секция регулярных).
+Курсор ввода — бренд-цвет (`caret-color`, был белый в WebView); ComposeScreen на `100dvh` (был странный скролл).
+
 **Остаётся:** перерисовка иконок (предложить превью вариантов); коммит фронта когда флаги разрулим.
 **Сделано 2026-06-16:** детальный экран (вариант C) подтверждён; flush черновика при жёстком «Назад»
 (`DetailScreen`); мёртвый CSS `.bottom-nav` удалён (`layout.css` v2-nav + `styles.css` v1-nav);

@@ -3,6 +3,7 @@
    docs/design-system-miniapp/app/Sheets.jsx and kept verbatim. */
 export { BottomSheet, SheetTitle, SheetCloseBtn, TelegramMainButton } from "./sheetPrimitives";
 export { ActionSheet, type SheetTarget } from "./ActionSheet";
-export { RemindersSheet, type ReminderRowData } from "./RemindersSheet";
+export { RemindersSheet, type ReminderRowData, type RecurringRowData } from "./RemindersSheet";
 export { ReminderPickerSheet } from "./ReminderPickerSheet";
 export { MoveToSpaceSheet, type SpaceOption } from "./MoveToSpaceSheet";
+export { CreateReminderSheet } from "./CreateReminderSheet";

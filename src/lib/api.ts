@@ -286,6 +286,24 @@ export interface RemindersList {
   total: number;
 }
 
+// Recurring reminders (/repeat, MVP = daily). Зеркалят бэк (api/recurring.py, schemas RecurringResponse).
+export interface Recurring {
+  id: string;
+  text: string;
+  rule: string; // пока всегда "daily"
+  hour: number;
+  minute: number;
+  next_fire_at: string;
+  active: boolean;
+  created_at: string;
+  deduplicated?: boolean; // true → бэк вернул существующую серию вместо дубля
+}
+
+export interface RecurringList {
+  items: Recurring[];
+  total: number;
+}
+
 export interface BookmarkListParams {
   page?: number;
   perPage?: number;
@@ -497,6 +515,23 @@ export const api = {
     },
     cancel(id: string): Promise<void> {
       return request(`/api/v1/reminders/${id}`, { method: "DELETE" });
+    },
+  },
+
+  // Регулярные (ежедневные) напоминания. POST шлёт сырой текст «<текст> каждый день
+  // в HH:MM» — бэк парсит сам (recurrence_parser). См. docs/BACKEND-CONTEXT-miniapp.md.
+  recurring: {
+    list(): Promise<RecurringList> {
+      return request("/api/v1/recurring/");
+    },
+    create(raw: string): Promise<Recurring> {
+      return request("/api/v1/recurring/", {
+        method: "POST",
+        body: JSON.stringify({ raw }),
+      });
+    },
+    stop(id: string): Promise<void> {
+      return request(`/api/v1/recurring/${id}`, { method: "DELETE" });
     },
   },
 };

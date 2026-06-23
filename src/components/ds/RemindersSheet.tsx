@@ -1,6 +1,6 @@
 /* RemindersSheet — grouped reminders list. Ported 1:1; styles verbatim. */
 import { cloneElement } from "react";
-import { Icons } from "./icons";
+import { Icons, ExtraIcons } from "./icons";
 import { Avatar } from "./ChatRow";
 import { BottomSheet, SheetTitle } from "./sheetPrimitives";
 
@@ -15,18 +15,30 @@ export interface ReminderRowData {
   time: string;
 }
 
+export interface RecurringRowData {
+  id: string;
+  text: string;
+  timeLabel: string; // «каждый день в HH:MM»
+}
+
 export function RemindersSheet({
   groups,
+  recurring = [],
   onDismiss,
   onSnooze,
   onCancel,
+  onCreate,
+  onStopRecurring,
 }: {
   groups: { label: string; rows: ReminderRowData[] }[];
+  recurring?: RecurringRowData[];
   onDismiss?: () => void;
   onSnooze?: (id: string) => void;
   onCancel?: (id: string) => void;
+  onCreate?: () => void;
+  onStopRecurring?: (id: string) => void;
 }) {
-  const total = groups.reduce((s, g) => s + g.rows.length, 0);
+  const total = groups.reduce((s, g) => s + g.rows.length, 0) + recurring.length;
   return (
     <BottomSheet onDismiss={onDismiss} minHeight={400} paddingBottom={40}>
       <SheetTitle
@@ -56,9 +68,21 @@ export function RemindersSheet({
             )}
           </span>
         }
+        right={
+          onCreate ? (
+            <button
+              type="button"
+              aria-label="новое напоминание"
+              onClick={onCreate}
+              style={{ width: 30, height: 30, borderRadius: 10, background: "var(--brand-primary)", color: "var(--fg-on-brand)", border: "none", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}
+            >
+              {cloneElement(Icons.plus, { size: 18, sw: 2 } as never)}
+            </button>
+          ) : undefined
+        }
         onClose={onDismiss}
       />
-      {groups.length === 0 && (
+      {groups.length === 0 && recurring.length === 0 && (
         <div
           style={{
             padding: "20px 20px 28px",
@@ -99,7 +123,54 @@ export function RemindersSheet({
           </div>
         </div>
       ))}
+
+      {recurring.length > 0 && (
+        <div style={{ marginBottom: 18 }}>
+          <div style={{ padding: "0 20px 10px", fontFamily: "var(--font-ui)", fontSize: 12.5, letterSpacing: "-0.005em", color: "var(--brand-primary-press)", fontWeight: 600 }}>
+            Регулярные
+          </div>
+          <div>
+            {recurring.map((r, i) => (
+              <RecurringRow key={r.id} {...r} isLast={i === recurring.length - 1} onStop={() => onStopRecurring?.(r.id)} />
+            ))}
+          </div>
+        </div>
+      )}
     </BottomSheet>
+  );
+}
+
+function RecurringRow({
+  text,
+  timeLabel,
+  isLast,
+  onStop,
+}: RecurringRowData & { isLast?: boolean; onStop?: () => void }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, padding: "13px 16px", position: "relative" }}>
+      {!isLast && (
+        <span style={{ position: "absolute", left: 64, right: 16, bottom: 0, borderBottom: "0.5px solid var(--border-1)" }} />
+      )}
+      <span style={{ width: 38, height: 38, borderRadius: 12, background: "var(--brand-primary-tint)", color: "var(--brand-primary-press)", display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+        {cloneElement(ExtraIcons.repeat, { size: 19, sw: 1.7 } as never)}
+      </span>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 14, fontWeight: 500, color: "var(--fg-1)", letterSpacing: "-0.01em", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {text}
+        </div>
+        <div style={{ fontFamily: "var(--font-ui)", fontSize: 12, color: "var(--fg-3)", marginTop: 2 }}>
+          {timeLabel}
+        </div>
+      </div>
+      <button
+        type="button"
+        aria-label="остановить серию"
+        onClick={onStop}
+        style={{ flexShrink: 0, width: 36, height: 36, borderRadius: "50%", border: "none", background: "transparent", color: "var(--semantic-error, #B5483A)", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", padding: 0 }}
+      >
+        {cloneElement(ExtraIcons.trash, { size: 18, sw: 1.6 } as never)}
+      </button>
+    </div>
   );
 }
 
