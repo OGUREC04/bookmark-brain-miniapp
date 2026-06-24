@@ -64,14 +64,21 @@ export function BottomSheet({
             borderTopRightRadius: 28,
             borderTop: "1px solid rgba(255,255,255,0.7)",
             padding: `6px 0 ${paddingBottom}px`,
+            // Не выше вьюпорта: длинный контент (напр. все связи) скроллится ВНУТРИ,
+            // а не уезжает за низ экрана. Ручка-«грабли» закреплена, скроллится контент.
+            maxHeight: "88dvh",
+            display: "flex",
+            flexDirection: "column",
             ...(minHeight ? { minHeight } : {}),
             boxShadow: "0 -8px 30px rgba(60,40,25,0.12), 0 1px 0 rgba(255,255,255,0.6) inset",
           }}
         >
-          <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px" }}>
+          <div style={{ display: "flex", justifyContent: "center", padding: "6px 0 10px", flexShrink: 0 }}>
             <div style={{ width: 38, height: 4, borderRadius: 999, background: "var(--border-strong, #C9C0AC)" }} />
           </div>
-          {children}
+          <div style={{ flex: 1, minHeight: 0, overflowY: "auto", WebkitOverflowScrolling: "touch" }}>
+            {children}
+          </div>
         </div>
       </div>
     </>
