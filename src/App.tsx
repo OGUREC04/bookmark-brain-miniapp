@@ -292,6 +292,17 @@ export function App() {
     [pushView],
   );
 
+  // После создания заметки — всегда на список всех заметок («Мысли»), очистив стек.
+  // Композер (＋) открывается слоем ПОВЕРХ текущей вкладки; без этого popView возвращал
+  // на ту же вкладку — напр. на Граф, откуда жали ＋ («перенаправляет на граф»).
+  // TODO(notes-as-conversations): в будущем — открывать «переписку» с заметкой (openDetail),
+  // когда фича заметка-как-диалог будет готова.
+  const afterCreate = useCallback(() => {
+    setStack([]);
+    setTab("mysli");
+    reload();
+  }, [reload]);
+
   const onTab = stack.length === 0;
 
   return (
@@ -363,16 +374,15 @@ export function App() {
             onSave={(text) =>
               runAction(async () => {
                 await api.createThought(text);
-                popView();
-                reload();
+                afterCreate();
               })
             }
             onToast={setToast}
             onUploadMedia={FLAGS.VOICE_UPLOAD ? (file, opts) => api.uploadMedia(file, opts) : undefined}
-            onCreated={(bm) => {
-              popView();
-              reload();
-              openDetail(bm); // откроет заметку с «Brain слушает…», поллинг обновит
+            onCreated={() => {
+              // TODO(notes-as-conversations): здесь будет openDetail(bm) — «переписка» с
+              // заметкой. Пока, как и текст, уходим на список (Brain дообработает голос в фоне).
+              afterCreate();
             }}
           />
         ) : tab === "mysli" ? (
