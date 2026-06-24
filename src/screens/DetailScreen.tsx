@@ -88,11 +88,14 @@ export function DetailScreen({
   useEffect(() => {
     setShowAllRelated(false);
     setRelatedOpen(false);
+    setRelated([]); // не показываем связи прошлой заметки, пока грузятся новые
+    setRelatedTotal(0);
   }, [bookmark.id]);
   useEffect(() => {
     if (!onOpenRelated) return;
     let cancelled = false;
-    api.getRelated(bookmark.id, showAllRelated ? 100 : 5, showAllRelated)
+    // all=true → лимит не нужен (бэк отдаёт все связи); превью — топ-5.
+    api.getRelated(bookmark.id, 5, showAllRelated)
       .then((res) => {
         if (cancelled) return;
         setRelatedTotal(res.total);
@@ -105,10 +108,8 @@ export function DetailScreen({
         );
       })
       .catch(() => {
-        if (!cancelled) {
-          setRelated([]);
-          setRelatedTotal(0);
-        }
+        // НЕ обнуляем: сбой re-fetch не должен стирать уже показанные связи и счётчик
+        // (стейл прошлой заметки чистится сбросом по bookmark.id выше).
       });
     return () => {
       cancelled = true;

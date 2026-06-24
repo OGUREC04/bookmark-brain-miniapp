@@ -385,7 +385,11 @@ export const api = {
 
   /** Похожие заметки (секция «Связано»). all=true → все связи, иначе топ-limit. */
   getRelated(bookmarkId: string, limit = 5, all = false): Promise<RelatedResponse> {
-    const qs = new URLSearchParams({ limit: String(limit), all: String(all) });
+    // При all=true бэк ИГНОРИРУЕТ limit и отдаёт все связи, но всё равно валидирует
+    // limit ≤ 50 — поэтому при all НЕ шлём его (раньше слали 100 → 422 → «Посмотреть
+    // все» отдавала пустую шторку и чип «N связей» исчезал).
+    const qs = new URLSearchParams({ all: String(all) });
+    if (!all) qs.set("limit", String(limit));
     return request(`/api/v1/bookmarks/${bookmarkId}/related?${qs.toString()}`);
   },
 
