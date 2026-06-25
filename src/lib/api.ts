@@ -304,6 +304,35 @@ export interface RecurringList {
   total: number;
 }
 
+// ─── Note entries (заметка-как-диалог, B2/B4). Плоская схема — зеркалит backend
+//     EntryResponse (backend/app/schemas.py). Контракт заморожен в B2 (DEC-4):
+//     голосовые поля на верхнем уровне, без вложенного voice{}. ───
+
+/** Вид записи лога. В MVP всегда "user" (Brain молчит); "brain"/"system" — задел на будущее. */
+export type EntryKind = "user" | "brain" | "system";
+
+/** Статус распознавания ГОЛОСОВОЙ дописки (B4) — на уровне записи, не всей заметки. */
+export type EntryAiStatus = "transcribing" | "done" | "failed";
+
+/** Дописка («сообщение») в логе заметки. Текст — body; голос несёт transcription/duration. */
+export interface Entry {
+  id: string;
+  kind: EntryKind;
+  body: string;
+  created_at: string;
+  edited_at: string | null;
+  // Голос (B4): заполняются воркером после STT. Для текстовых дописок — отсутствуют/null.
+  transcription?: string | null;
+  duration?: number | null;
+  entry_ai_status?: EntryAiStatus | null;
+}
+
+/** Лента дописок заметки (GET .../thread). Без пагинации в MVP (DEC-6). */
+export interface Thread {
+  entries: Entry[];
+  total: number;
+}
+
 export interface BookmarkListParams {
   page?: number;
   perPage?: number;
@@ -537,6 +566,48 @@ export const api = {
     },
     stop(id: string): Promise<void> {
       return request(`/api/v1/recurring/${id}`, { method: "DELETE" });
+    },
+  },
+
+  // ─── Note entries (заметка-как-диалог). Лог дописок к заметке. Бэк: app/api/entries.py.
+  //     Brain молчит (kind='user'); голос-дописка распознаётся воркером (entry_ai_status). ───
+  entries: {
+    /** Лента дописок заметки — неудалённые, по времени (старое → новое). Без пагинации (MVP). */
+    list(bookmarkId: string): Promise<Thread> {
+      return request(`/api/v1/bookmarks/${bookmarkId}/thread`);
+    },
+    /** Добавить текстовую дописку (kind='user'). */
+    create(bookmarkId: string, body: string): Promise<Entry> {
+      return request(`/api/v1/bookmarks/${bookmarkId}/entries`, {
+        method: "POST",
+        body: JSON.stringify({ body }),
+      });
+    },
+    /** Править дописку (бэк ставит edited_at). */
+    edit(bookmarkId: string, entryId: string, body: string): Promise<Entry> {
+      return request(`/api/v1/bookmarks/${bookmarkId}/entries/${entryId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ body }),
+      });
+    },
+    /** Мягко удалить дописку (бэк ставит is_deleted). */
+    remove(bookmarkId: string, entryId: string): Promise<void> {
+      return request(`/api/v1/bookmarks/${bookmarkId}/entries/${entryId}`, {
+        method: "DELETE",
+      });
+    },
+    /** Голосовая дописка (B4): загрузка аудио. Возвращает запись entry_ai_status='transcribing'
+     *  — дальше ОТДЕЛЬНЫЙ поллинг GET thread пока есть transcribing (DEC-11). Multipart (как uploadMedia):
+     *  filename нужен бэку для определения формата/транскода по суффиксу. */
+    upload(
+      bookmarkId: string,
+      file: Blob,
+      opts: { duration?: number; filename?: string } = {},
+    ): Promise<Entry> {
+      const fd = new FormData();
+      fd.append("file", file, opts.filename ?? "voice.webm");
+      if (opts.duration !== undefined) fd.append("duration", String(opts.duration));
+      return requestRaw<Entry>(`/api/v1/bookmarks/${bookmarkId}/entries/upload`, fd);
     },
   },
 };
