@@ -70,6 +70,13 @@ export function formatDaySeparator(iso: string): string {
   return date;
 }
 
+/** Только время «14:30» — для меток внутри ленты дописок (день задаёт разделитель). */
+export function formatTime(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "";
+  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
 /**
  * Форматирование fire_at напоминания.
  * - <1ч до → "через 30 мин"

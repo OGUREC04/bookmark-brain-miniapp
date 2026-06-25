@@ -6,9 +6,11 @@ import { cloneElement, useState, useRef, useCallback, useEffect } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
+import { ThreadLog } from "../components/ds/ThreadLog";
 import { BottomSheet } from "../components/ds/sheetPrimitives";
-import { api, type Bookmark } from "../lib/api";
+import { api, type Bookmark, type Entry } from "../lib/api";
 import { hostOf, isWorkingStatus } from "../lib/adapters";
+import { FLAGS } from "../lib/flags";
 import { formatRelativeDate } from "../lib/formatters";
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
@@ -115,6 +117,25 @@ export function DetailScreen({
       cancelled = true;
     };
   }, [bookmark.id, showAllRelated, onOpenRelated]);
+
+  // F3a — лента дописок (заметка-как-диалог). Грузим при открытии заметки (флаг NOTES_LOG).
+  const [entries, setEntries] = useState<Entry[]>([]);
+  useEffect(() => {
+    if (!FLAGS.NOTES_LOG) return;
+    let cancelled = false;
+    setEntries([]); // не показываем дописки прошлой заметки, пока грузятся новые
+    api.entries
+      .list(bookmark.id)
+      .then((t) => {
+        if (!cancelled) setEntries(t.entries);
+      })
+      .catch(() => {
+        // лента дописок некритична для экрана — молча
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [bookmark.id]);
 
   // FLAGS.TEXT_EDIT — inline-правка тела текста (тикет 0rn). Доступна когда родитель дал onSaveText.
   // Тело = raw_text (каноничное поле; для голосовых бэк уточнит — см. бриф BOOKMARK-TEXT-EDIT).
@@ -422,6 +443,19 @@ export function DetailScreen({
             >
               {cloneElement(ExtraIcons.copy, { size: 16, sw: 1.7 } as never)}
             </button>
+          </div>
+        )}
+
+        {/* F3a — лента дописок (заметка-как-диалог). Гейт NOTES_LOG: read-only, пока нет композера (F3b).
+            Тихий маркер edge#12: саммари построено до дописок и их не учитывает. */}
+        {FLAGS.NOTES_LOG && entries.length > 0 && (
+          <div style={{ marginTop: 24, paddingTop: 16, borderTop: "0.5px solid var(--border-1)" }}>
+            {bookmark.summary && (
+              <div style={{ textAlign: "center", fontFamily: "var(--font-ui)", fontSize: 11.5, color: "var(--fg-4)", marginBottom: 4, letterSpacing: "-0.005em" }}>
+                Саммари выше не учитывает дописки
+              </div>
+            )}
+            <ThreadLog entries={entries} />
           </div>
         )}
       </div>

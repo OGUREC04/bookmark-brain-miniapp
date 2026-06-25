@@ -35,4 +35,14 @@ export const FLAGS = {
    * Бриф: bookmark-brain/docs/prd/MINIAPP-MEDIA-UPLOAD.md.
    */
   VOICE_UPLOAD: true,
+
+  /**
+   * Заметка-как-диалог (Notes as Conversations): лента дописок в DetailScreen
+   * чат-бабблами. Бэк B1–B4 в main (entries CRUD + голос-в-дописку + classify-free
+   * re-index). Фронт в процессе: F3a (лента read-only) готова, композер (F3b) и
+   * голос-дописка (F3d) — нет → пока OFF, вливаем «тёмным». Включить, когда лента
+   * станет полноценной (можно дописывать).
+   * Эпик: bookmark-brain/docs/prd/NOTES-AS-CONVERSATIONS-EPIC.md.
+   */
+  NOTES_LOG: false,
 } as const;
