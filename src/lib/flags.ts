@@ -39,9 +39,10 @@ export const FLAGS = {
   /**
    * Заметка-как-диалог (Notes as Conversations): лента дописок в DetailScreen
    * чат-бабблами. Бэк B1–B4 в main (entries CRUD + голос-в-дописку + classify-free
-   * re-index). Фронт: F3a (чтение) + F3b (текст-дописка) + F3d (голос-дописка +
-   * thread-поллинг статуса) готовы — лента читается и пишется текстом и голосом.
-   * ПРОДА НЕТ → включено для дева (true). Осталось F3c (правка/удаление) и F4.
+   * re-index). Фронт F1–F4 готов: чтение (F3a) + текст-дописка (F3b) + голос-дописка
+   * с thread-поллингом (F3d) + правка/удаление inline (F3c) + открытие переписки
+   * после создания (F4). Лента читается и пишется текстом и голосом.
+   * ПРОДА НЕТ → включено для дева (true). Док: bookmark-brain/docs/requirements/бт-14.
    * Эпик: bookmark-brain/docs/prd/NOTES-AS-CONVERSATIONS-EPIC.md.
    */
   NOTES_LOG: true,
