@@ -95,7 +95,8 @@ body {
   color: var(--color-text);
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  min-height: 100vh;
+  min-height: 100vh; /* фолбэк */
+  min-height: 100dvh; /* видимая высота — без overshoot-скролла в WebView (100vh > видимой) */
   overflow-x: hidden;
 }
 

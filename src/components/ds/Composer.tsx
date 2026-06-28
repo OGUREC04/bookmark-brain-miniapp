@@ -57,7 +57,9 @@ export function Composer({
             ? '"input input input" "lead . send"'
             : '"lead input send"'
           : '"input send"',
-        alignItems: "center",
+        // end, не center: когда поле выросло, кнопка отправки прижата вниз (как в
+        // чат-композерах), а не висит по центру высокого поля.
+        alignItems: "end",
         gap: 8,
         background: "var(--bg-surface)",
         border: "1px solid var(--border-1)",
