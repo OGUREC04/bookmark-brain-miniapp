@@ -415,9 +415,9 @@ export function GraphScreen({
   return (
     <div
       style={{
-        // dvh, не vh: граф — фикс-вьюпорт; 100vh в мобильном WebView выше видимой
-        // области → страница скроллится. dvh = ровно видимая высота, скролла нет.
-        height: "100dvh",
+        // Полная высота вьюпорта. Скролл страницы на графе блокируется в App
+        // (body/html overflow) — надёжнее dvh, который в части WebView схлопывал высоту.
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
         paddingTop: "calc(4px + env(safe-area-inset-top,0))",

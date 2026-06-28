@@ -306,13 +306,26 @@ export function App() {
 
   const onTab = stack.length === 0;
 
+  // Граф — полноэкранный фикс-вью: пока он открыт, блокируем скролл страницы
+  // (надёжнее vh/dvh-возни — убирает полосу независимо от quirks высоты WebView).
+  const isGraphView = top?.kind === "graph" || (onTab && tab === "graph");
+  useEffect(() => {
+    if (!isGraphView) return;
+    const prevBody = document.body.style.overflow;
+    const prevHtml = document.documentElement.style.overflow;
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prevBody;
+      document.documentElement.style.overflow = prevHtml;
+    };
+  }, [isGraphView]);
+
   return (
     <div
       style={{
         position: "relative",
-        // dvh, не vh: в Telegram-WebView/мобильном браузере 100vh больше видимой
-        // области (включает убирающуюся панель) → лишний скролл. dvh = видимая высота.
-        minHeight: "100dvh",
+        minHeight: "100vh",
         // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
         overflowX: "clip",
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
