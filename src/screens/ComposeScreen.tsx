@@ -14,13 +14,13 @@ import {
   isTooShort,
   isTooLarge,
 } from "../lib/recorder";
-import { canSend, shouldExpandComposer } from "../lib/compose";
+import { canSend } from "../lib/compose";
 import { openBotVoiceChat } from "../lib/telegram";
+import { Composer } from "../components/ds/Composer";
 import type { Bookmark } from "../lib/api";
 
 type VoiceState = "idle" | "recording" | "sending";
 
-const MAX_TEXTAREA_PX = 168;
 // Статичные высоты бар-ов псевдо-волны (анимация — через .bb-wave-bar).
 const WAVE_BARS = [16, 26, 36, 20, 42, 28, 16, 34, 44, 22, 30, 38, 18, 28, 14, 36, 24, 16];
 
@@ -47,8 +47,6 @@ export function ComposeScreen({
 }) {
   const [text, setText] = useState("");
   const [saving, setSaving] = useState(false);
-  const sendEnabled = canSend(text, saving);
-  const expanded = shouldExpandComposer(text);
 
   const voiceOn = FLAGS.VOICE_UPLOAD && !!onUploadMedia;
   const canRecord = voiceOn && voiceSupported();
@@ -56,7 +54,6 @@ export function ComposeScreen({
   const [elapsed, setElapsed] = useState(0);
   const recorderRef = useRef<VoiceRecorder | null>(null);
   const aliveRef = useRef(true);
-  const taRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Уход с экрана во время записи → освобождаем микрофон.
   useEffect(() => {
@@ -75,16 +72,8 @@ export function ComposeScreen({
     return () => clearInterval(t);
   }, [voiceState]);
 
-  // Авто-рост textarea под текст (до предела), без фикс. rows.
-  useEffect(() => {
-    const el = taRef.current;
-    if (!el) return;
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_PX)}px`;
-  }, [text]);
-
   const save = async () => {
-    if (!sendEnabled) return;
+    if (!canSend(text, saving)) return;
     setSaving(true);
     try {
       await onSave?.(text.trim());
@@ -281,97 +270,36 @@ export function ComposeScreen({
           </div>
 
           <div style={{ padding: "0 14px" }}>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "auto 1fr auto",
-                gridTemplateAreas: expanded
-                  ? '"input input input" "lead . send"'
-                  : '"lead input send"',
-                alignItems: "center",
-                gap: 8,
-                background: "var(--bg-surface)",
-                border: "1px solid var(--border-1)",
-                borderRadius: 22,
-                padding: 8,
-                boxShadow: "var(--shadow-2)",
-              }}
-            >
-              {/* Слева: вложение (📎, фаза 2 — disabled) + голос (🎤). */}
-              <div style={{ display: "flex", alignItems: "center", gap: 4, gridArea: "lead" }}>
-                <button
-                  type="button"
-                  aria-label="вложение"
-                  disabled
-                  style={{ ...glyphBtn, background: "transparent", border: "none", color: "var(--fg-4)", cursor: "not-allowed" }}
-                >
-                  {cloneElement(Icons.plus, { size: 20, sw: 2 } as never)}
-                </button>
-                {voiceOn && (
+            <Composer
+              value={text}
+              onChange={setText}
+              onSend={save}
+              sending={saving}
+              autoFocus
+              lead={
+                <>
+                  {/* Вложение (📎, фаза 2 — disabled) + голос (🎤). */}
                   <button
                     type="button"
-                    aria-label="записать голос"
-                    onClick={() => void startRecording()}
-                    style={{ ...glyphBtn, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
+                    aria-label="вложение"
+                    disabled
+                    style={{ ...glyphBtn, background: "transparent", border: "none", color: "var(--fg-4)", cursor: "not-allowed" }}
                   >
-                    {cloneElement(ExtraIcons.mic, { size: 20, sw: 1.6 } as never)}
+                    {cloneElement(Icons.plus, { size: 20, sw: 2 } as never)}
                   </button>
-                )}
-              </div>
-
-              <textarea
-                ref={taRef}
-                className="compose-input"
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Мысль или ссылка…"
-                autoFocus
-                rows={1}
-                style={{
-                  gridArea: "input",
-                  width: "100%",
-                  minWidth: 0,
-                  boxSizing: "border-box",
-                  maxHeight: MAX_TEXTAREA_PX,
-                  overflowY: "auto",
-                  border: "none",
-                  outline: "none",
-                  resize: "none",
-                  background: "transparent",
-                  fontFamily: "var(--font-ui)",
-                  fontSize: 16,
-                  color: "var(--fg-1)",
-                  lineHeight: 1.45,
-                  letterSpacing: "-0.005em",
-                  padding: expanded ? "6px 6px 2px" : "0 4px",
-                }}
-              />
-
-              <button
-                type="button"
-                aria-label="отправить"
-                onClick={save}
-                disabled={!sendEnabled}
-                style={{
-                  width: 40,
-                  height: 40,
-                  borderRadius: 12,
-                  gridArea: "send",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  background: "var(--brand-primary)",
-                  border: "none",
-                  color: "var(--fg-on-brand)",
-                  opacity: sendEnabled ? 1 : 0.4,
-                  boxShadow: sendEnabled ? "var(--shadow-fab)" : "none",
-                  cursor: sendEnabled ? "pointer" : "not-allowed",
-                  transition: "opacity 160ms var(--ease-out)",
-                }}
-              >
-                {cloneElement(ExtraIcons.send, { size: 20, sw: 1.7 } as never)}
-              </button>
-            </div>
+                  {voiceOn && (
+                    <button
+                      type="button"
+                      aria-label="записать голос"
+                      onClick={() => void startRecording()}
+                      style={{ ...glyphBtn, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
+                    >
+                      {cloneElement(ExtraIcons.mic, { size: 20, sw: 1.6 } as never)}
+                    </button>
+                  )}
+                </>
+              }
+            />
           </div>
         </>
       )}
