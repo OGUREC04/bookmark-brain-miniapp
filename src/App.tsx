@@ -330,6 +330,10 @@ export function App() {
         minHeight: "100dvh",
         // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
         overflowX: "clip",
+        // Запас под плавающий таб-бар нужен ТОЛЬКО на табах (бар виден). На пушнутых
+        // вью (compose/заметка/граф/поиск) бара нет → 0; иначе .app-shell (CSS) добавлял
+        // 96px к height:100dvh-экранам (border-box) → страница выше экрана → overshoot-скролл.
+        paddingBottom: onTab ? "calc(96px + env(safe-area-inset-bottom, 0px))" : 0,
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
         background: top?.kind === "detail" ? "var(--backdrop-gradient, var(--bg-page))" : "var(--bg-page)",
       }}
