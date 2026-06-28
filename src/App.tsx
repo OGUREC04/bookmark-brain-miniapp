@@ -293,16 +293,18 @@ export function App() {
     [pushView],
   );
 
-  // После создания заметки — всегда на список всех заметок («Мысли»), очистив стек.
-  // Композер (＋) открывается слоем ПОВЕРХ текущей вкладки; без этого popView возвращал
-  // на ту же вкладку — напр. на Граф, откуда жали ＋ («перенаправляет на граф»).
-  // TODO(notes-as-conversations): в будущем — открывать «переписку» с заметкой (openDetail),
-  // когда фича заметка-как-диалог будет готова.
-  const afterCreate = useCallback(() => {
-    setStack([]);
-    setTab("mysli");
-    reload();
-  }, [reload]);
+  // После создания заметки (F4, DEC-7): при включённой ленте открываем «переписку» с
+  // заметкой (DetailScreen) — текст ещё обрабатывается / голос распознаётся, note-level
+  // поллинг догонит. Иначе (фича тёмная) — старое поведение: на список «Мысли».
+  // Стек = [detail] поверх базовой вкладки → back из заметки возвращает на «Мысли».
+  const afterCreate = useCallback(
+    (bm: Bookmark) => {
+      reload();
+      setTab("mysli");
+      setStack(FLAGS.NOTES_LOG ? [{ kind: "detail", bookmark: bm }] : []);
+    },
+    [reload],
+  );
 
   const onTab = stack.length === 0;
 
@@ -395,17 +397,13 @@ export function App() {
             onClose={popView}
             onSave={(text) =>
               runAction(async () => {
-                await api.createThought(text);
-                afterCreate();
+                const bm = await api.createThought(text);
+                afterCreate(bm);
               })
             }
             onToast={setToast}
             onUploadMedia={FLAGS.VOICE_UPLOAD ? (file, opts) => api.uploadMedia(file, opts) : undefined}
-            onCreated={() => {
-              // TODO(notes-as-conversations): здесь будет openDetail(bm) — «переписка» с
-              // заметкой. Пока, как и текст, уходим на список (Brain дообработает голос в фоне).
-              afterCreate();
-            }}
+            onCreated={(bm) => afterCreate(bm)}
           />
         ) : tab === "mysli" ? (
           <MysliScreen
