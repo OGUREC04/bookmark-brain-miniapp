@@ -7,7 +7,9 @@ import { cloneElement, useEffect, useRef, type ReactNode } from "react";
 import { canSend, shouldExpandComposer } from "../../lib/compose";
 import { ExtraIcons } from "./icons";
 
-const MAX_TEXTAREA_PX = 168;
+// Потолок высоты поля (≈10 строк). Заметки длиннее чата (Messenger/WhatsApp ~4-5
+// строк), поэтому выше; дальше — внутренний скролл. Источник: CSS-Tricks autogrow.
+const MAX_TEXTAREA_PX = 240;
 
 export function Composer({
   value,
@@ -40,6 +42,9 @@ export function Composer({
     if (!el) return;
     el.style.height = "auto";
     el.style.height = `${Math.min(el.scrollHeight, MAX_TEXTAREA_PX)}px`;
+    // Скролл — ТОЛЬКО когда текст реально не влезает в потолок. Иначе hidden:
+    // постоянный overflowY:auto давал полосу преждевременно (округление scrollHeight).
+    el.style.overflowY = el.scrollHeight > MAX_TEXTAREA_PX ? "auto" : "hidden";
   }, [value]);
 
   return (
@@ -81,7 +86,7 @@ export function Composer({
           minWidth: 0,
           boxSizing: "border-box",
           maxHeight: MAX_TEXTAREA_PX,
-          overflowY: "auto",
+          overflowY: "hidden", // эффект включит "auto" только при переполнении
           border: "none",
           outline: "none",
           resize: "none",

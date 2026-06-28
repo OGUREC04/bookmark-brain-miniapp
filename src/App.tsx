@@ -325,7 +325,9 @@ export function App() {
     <div
       style={{
         position: "relative",
-        minHeight: "100vh",
+        // dvh, не vh: в WebView 100vh выше видимой области → лишний скролл страницы
+        // даже при коротком контенте. dvh = видимая высота (поддержан, ComposeScreen на нём).
+        minHeight: "100dvh",
         // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
         overflowX: "clip",
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
