@@ -46,7 +46,7 @@ type ViewLayer =
   | { kind: "detail"; bookmark: Bookmark }
   // Полноэкранный захват «Новая мысль» (текст + голос) — заменил шторку quickCreate.
   | { kind: "compose" }
-  // FLAGS.CONNECTIONS: локальный эго-граф вокруг заметки (открыт из «Связано»).
+  // FLAGS.CONNECTIONS: полный граф с подсветкой этой заметки (открыт из «Связано»).
   | { kind: "graph"; center: string };
 
 type Sheet =
@@ -283,7 +283,8 @@ export function App() {
     [runAction, openDetail],
   );
 
-  // FLAGS.CONNECTIONS: открыть локальный эго-граф вокруг заметки (из «Связано»).
+  // FLAGS.CONNECTIONS: открыть ПОЛНЫЙ граф с подсветкой этой заметки (камера
+  // наводится на неё, кольцо пульсирует) — вместо прежнего локального эго-графа.
   const openGraph = useCallback(
     (centerId: string) => {
       hapticImpact("light");
@@ -365,7 +366,7 @@ export function App() {
             onMore={openActions}
           />
         ) : top?.kind === "graph" ? (
-          <GraphScreen mode="local" centerId={top.center} onBack={popView} onOpenNote={openRelated} />
+          <GraphScreen mode="full" centerId={top.center} onBack={popView} onOpenNote={openRelated} />
         ) : top?.kind === "search" ? (
           <SearchScreen onBack={popView} onOpen={openDetail} />
         ) : top?.kind === "compose" ? (

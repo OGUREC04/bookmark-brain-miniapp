@@ -202,6 +202,12 @@
   to   { opacity: 1; }
 }
 
+/* Пульс кольца на исходной заметке при открытии графа ИЗ неё (один проход). */
+@keyframes graphPulse {
+  0%   { transform: scale(0.5); opacity: 0.65; }
+  100% { transform: scale(2.3); opacity: 0; }
+}
+
 /* Compose: серифный плейсхолдер строки ввода (нативный, без фейк-оверлея). */
 .compose-input::placeholder {
   font-family: var(--font-display);
@@ -235,6 +241,7 @@ textarea, input, [contenteditable="true"] { caret-color: var(--brand-primary); }
 
 @media (prefers-reduced-motion: reduce) {
   [style*="bb-pulse"] { animation: none !important; }
+  [style*="graphPulse"] { animation: none !important; }
 }
 
 /* Centered loading-dot block for first list load */

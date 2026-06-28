@@ -45,6 +45,7 @@ const LEGEND: [type: string, label: string, color: string][] = [
   ["__other", "Прочее", DEFAULT_NODE_COLOR],
 ];
 const HUB_LABEL_COUNT = 7; // сколько самых связанных узлов подписывать всегда
+const PULSE_RING = 54; // px — диаметр кольца пульса на исходной заметке
 function typeKey(n: FGNode): string {
   return n.type && TYPE_COLOR[n.type] ? n.type : "__other";
 }
@@ -139,7 +140,9 @@ export function GraphScreen({
     setFull({ phase: "loading" });
     try {
       const g = await api.getGraph();
-      const data = graphDataOf(g.nodes, g.edges);
+      // centerId задан, когда граф открыт ИЗ заметки → она помечается isCenter
+      // (тёмный цвет/крупнее/кольцо/подпись в drawNode), на неё наводится камера.
+      const data = graphDataOf(g.nodes, g.edges, centerId ?? undefined);
       const cached = !!g.layout && !g.stale;
       if (cached && g.layout) {
         const pos = new Map(g.layout.map((p) => [p.id, p]));
@@ -160,7 +163,7 @@ export function GraphScreen({
     } catch {
       setFull({ phase: "error" });
     }
-  }, []);
+  }, [centerId]);
 
   // Авто-загрузка при входе на таб. Раскладка кэшируется на бэке → повторный заход быстрый.
   useEffect(() => {
@@ -187,6 +190,9 @@ export function GraphScreen({
   const [highlightType, setHighlightType] = useState<string | null>(null);
   // Наведение (ховер) — кольцо + подпись на десктопе/превью.
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // Пульс кольца на исходной заметке (граф открыт ИЗ неё) — один проход.
+  const [pulseAt, setPulseAt] = useState<{ x: number; y: number } | null>(null);
+  const pulsedRef = useRef(false);
   const focusedId = selected?.id ?? null;
   useEffect(() => {
     setSelected(null);
@@ -257,9 +263,24 @@ export function GraphScreen({
     return s;
   }, [gdata]);
 
-  // Сохранение раскладки (full) + авто-вписывание после стабилизации.
+  // Камера: на исходную заметку (если граф открыт ИЗ неё) или вписать весь граф.
+  const fitCamera = useCallback(() => {
+    const fg = fgRef.current;
+    if (!fg) return;
+    if (centerId && gdata) {
+      const node = (gdata.nodes as FGNode[]).find((n) => n.id === centerId);
+      if (node && typeof node.x === "number" && typeof node.y === "number") {
+        fg.centerAt(node.x, node.y, 480);
+        fg.zoom(2.4, 480);
+        return;
+      }
+    }
+    fg.zoomToFit?.(420, 48);
+  }, [centerId, gdata]);
+
+  // Сохранение раскладки (full) + авто-наведение/вписывание после стабилизации.
   const handleEngineStop = useCallback(() => {
-    fgRef.current?.zoomToFit?.(420, 48);
+    fitCamera();
     setFull((s) => {
       if (s.phase !== "ready" || !s.needsSave) return s;
       const allNodes = s.data.nodes as FGNode[];
@@ -275,7 +296,7 @@ export function GraphScreen({
         .catch(() => {});
       return { ...s, needsSave: false };
     });
-  }, []);
+  }, [fitCamera]);
 
   // Тюним d3-силы (Obsidian/Cambridge): отталкивание с потолком + длина ребра по
   // похожести → читаемые кластеры. Каскад вписываний: симуляция оседает не сразу.
@@ -289,9 +310,47 @@ export function GraphScreen({
     link?.distance?.((l: { value?: number }) => 50 + (1 - (l.value ?? 0)) * 50);
     link?.strength?.(0.35);
     fg.d3ReheatSimulation?.();
-    const ts = [350, 900, 1800, 3000].map((d) => setTimeout(() => fg.zoomToFit?.(420, 48), d));
+    const ts = [350, 900, 1800, 3000].map((d) => setTimeout(fitCamera, d));
     return () => ts.forEach(clearTimeout);
-  }, [gdata, dims.w]);
+  }, [gdata, dims.w, fitCamera]);
+
+  // Сброс пульса при смене исходной заметки.
+  useEffect(() => {
+    pulsedRef.current = false;
+    setPulseAt(null);
+  }, [centerId]);
+
+  // Пульс кольца на исходной заметке — один раз, когда камера навелась на неё.
+  // Позицию трекаем коротким интервалом, чтобы кольцо не съезжало, пока камера доводит.
+  useEffect(() => {
+    if (!centerId || pulsedRef.current || full.phase !== "ready" || !gdata || dims.w === 0) return;
+    let mounted = true; // как `alive` в эффекте local — без setState после анмаунта.
+    let iv: ReturnType<typeof setInterval> | undefined;
+    let endT: ReturnType<typeof setTimeout> | undefined;
+    const startT = setTimeout(() => {
+      if (!mounted) return;
+      pulsedRef.current = true;
+      const sync = () => {
+        const fg = fgRef.current;
+        const node = (gdata.nodes as FGNode[]).find((n) => n.id === centerId);
+        if (!fg || !node || typeof node.x !== "number" || typeof node.y !== "number") return;
+        const sc = fg.graph2ScreenCoords?.(node.x, node.y);
+        if (sc && mounted) setPulseAt({ x: sc.x, y: sc.y });
+      };
+      sync();
+      iv = setInterval(sync, 120);
+      endT = setTimeout(() => {
+        if (iv) clearInterval(iv);
+        if (mounted) setPulseAt(null);
+      }, 1600);
+    }, 1200);
+    return () => {
+      mounted = false;
+      clearTimeout(startT);
+      if (iv) clearInterval(iv);
+      if (endT) clearTimeout(endT);
+    };
+  }, [centerId, full.phase, gdata, dims.w]);
 
   const drawNode = useCallback(
     (node: FGNode, ctx: CanvasRenderingContext2D, scale: number) => {
@@ -380,7 +439,11 @@ export function GraphScreen({
         display: "flex",
         flexDirection: "column",
         paddingTop: "calc(4px + env(safe-area-inset-top,0))",
-        paddingBottom: mode === "full" ? "calc(92px + env(safe-area-inset-bottom,0))" : 0,
+        // Таб-граф: место под нижний таб-бар. Граф из заметки (есть onBack) — без него.
+        paddingBottom:
+          mode === "full" && !onBack
+            ? "calc(92px + env(safe-area-inset-bottom,0))"
+            : "calc(12px + env(safe-area-inset-bottom,0))",
       }}
     >
       {/* Без заголовка (конвенция приложения). В локальном режиме — только «назад». */}
@@ -472,6 +535,24 @@ export function GraphScreen({
               onNodeClick={handleNodeClick as never}
               onBackgroundClick={handleBackgroundClick}
               onEngineStop={handleEngineStop}
+            />
+          )}
+
+          {pulseAt && (
+            <div
+              aria-hidden
+              style={{
+                position: "absolute",
+                left: pulseAt.x - PULSE_RING / 2,
+                top: pulseAt.y - PULSE_RING / 2,
+                width: PULSE_RING,
+                height: PULSE_RING,
+                borderRadius: "50%",
+                border: "2px solid var(--brand-primary)",
+                pointerEvents: "none",
+                zIndex: 1,
+                animation: "graphPulse 1.5s ease-out",
+              }}
             />
           )}
 
