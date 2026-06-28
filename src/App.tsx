@@ -310,7 +310,9 @@ export function App() {
     <div
       style={{
         position: "relative",
-        minHeight: "100vh",
+        // dvh, не vh: в Telegram-WebView/мобильном браузере 100vh больше видимой
+        // области (включает убирающуюся панель) → лишний скролл. dvh = видимая высота.
+        minHeight: "100dvh",
         // clip (не hidden): не создаёт скролл-контейнер → не ломает sticky-шапку.
         overflowX: "clip",
         // Главная и списки — однотонный фон; фирменный градиент только на заметке.
@@ -366,7 +368,7 @@ export function App() {
             onMore={openActions}
           />
         ) : top?.kind === "graph" ? (
-          <GraphScreen mode="full" centerId={top.center} onBack={popView} onOpenNote={openRelated} />
+          <GraphScreen centerId={top.center} onBack={popView} onOpenNote={openRelated} />
         ) : top?.kind === "search" ? (
           <SearchScreen onBack={popView} onOpen={openDetail} />
         ) : top?.kind === "compose" ? (
@@ -397,7 +399,7 @@ export function App() {
         ) : tab === "spaces" ? (
           <SpacesScreen onOpen={openSpace} onCreate={comingSoon} />
         ) : tab === "graph" ? (
-          <GraphScreen mode="full" onOpenNote={openRelated} />
+          <GraphScreen onOpenNote={openRelated} />
         ) : (
           <MeScreen onComingSoon={comingSoon} />
         )}

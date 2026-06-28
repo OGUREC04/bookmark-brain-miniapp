@@ -228,13 +228,6 @@ export interface GraphEdge {
   weight: number;
 }
 
-/** Эго-граф вокруг заметки (на лету, без кэша). */
-export interface GraphLocalData {
-  nodes: GraphNode[];
-  edges: GraphEdge[];
-  center: string;
-}
-
 /** Координаты узла из клиентской раскладки (force-симуляция → кэш на бэке). */
 export interface GraphLayoutNode {
   id: string;
@@ -420,12 +413,6 @@ export const api = {
     const qs = new URLSearchParams({ all: String(all) });
     if (!all) qs.set("limit", String(limit));
     return request(`/api/v1/bookmarks/${bookmarkId}/related?${qs.toString()}`);
-  },
-
-  /** Эго-граф вокруг заметки (на лету). */
-  getGraphLocal(center: string, depth = 2): Promise<GraphLocalData> {
-    const qs = new URLSearchParams({ center, depth: String(depth) });
-    return request(`/api/v1/graph/local?${qs.toString()}`);
   },
 
   /** Полный граф + кэш раскладки (layout=null → считать клиенту). */

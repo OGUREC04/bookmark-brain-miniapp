@@ -1,8 +1,7 @@
 /* GraphScreen — граф связей (Connections Phase 5A). Реф — Obsidian Graph view.
-   Два режима:
-   - local: эго-граф вокруг заметки (мгновенно, без кэша);
-   - full: полный граф. Раскладку считает КЛИЕНТ (force-симуляция), координаты
-     кэшируются на бэке (buildGraph); при наличии кэша рисуем сразу.
+   Полный граф: раскладку считает КЛИЕНТ (force-симуляция), координаты кэшируются
+   на бэке (buildGraph); при наличии кэша рисуем сразу. Открывается как таб «Граф»
+   (без onBack) и из заметки «Граф связей» (centerId → подсветка центра + onBack).
    Либа react-force-graph-2d (canvas — лёгкая для Telegram WebView).
 
    Визуал (по рефам Obsidian + правкам пользователя):
@@ -94,12 +93,10 @@ const primaryBtn = {
 } as const;
 
 export function GraphScreen({
-  mode,
   centerId,
   onBack,
   onOpenNote,
 }: {
-  mode: "local" | "full";
   centerId?: string | null;
   onBack?: () => void;
   onOpenNote: (id: string) => void;
@@ -120,21 +117,7 @@ export function GraphScreen({
     roRef.current = ro;
   }, []);
 
-  // ── local (эго-граф вокруг заметки) ──
-  const [local, setLocal] = useState<ForceGraphData | null>(null);
-  useEffect(() => {
-    if (mode !== "local" || !centerId) return;
-    let alive = true;
-    api
-      .getGraphLocal(centerId, 2)
-      .then((g) => alive && setLocal(graphDataOf(g.nodes, g.edges, centerId)))
-      .catch(() => alive && setLocal({ nodes: [], links: [] }));
-    return () => {
-      alive = false;
-    };
-  }, [mode, centerId]);
-
-  // ── full (полный граф по кнопке + кэш раскладки) ──
+  // ── full (полный граф + кэш раскладки) ──
   const [full, setFull] = useState<FullState>({ phase: "idle" });
   const buildFull = useCallback(async (manual = false) => {
     setFull({ phase: "loading" });
@@ -165,16 +148,13 @@ export function GraphScreen({
     }
   }, [centerId]);
 
-  // Авто-загрузка при входе на таб. Раскладка кэшируется на бэке → повторный заход быстрый.
+  // Авто-загрузка при входе. Раскладка кэшируется на бэке → повторный заход быстрый.
   useEffect(() => {
-    if (mode === "full" && full.phase === "idle") buildFull();
-  }, [mode, full.phase, buildFull]);
+    if (full.phase === "idle") buildFull();
+  }, [full.phase, buildFull]);
 
-  const data: ForceGraphData | null =
-    mode === "local" ? local : full.phase === "ready" ? full.data : null;
-  const loading =
-    (mode === "full" && (full.phase === "idle" || full.phase === "loading")) ||
-    (mode === "local" && !!centerId && !local);
+  const data: ForceGraphData | null = full.phase === "ready" ? full.data : null;
+  const loading = full.phase === "idle" || full.phase === "loading";
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const fgRef = useRef<any>(null);
@@ -324,7 +304,7 @@ export function GraphScreen({
   // Позицию трекаем коротким интервалом, чтобы кольцо не съезжало, пока камера доводит.
   useEffect(() => {
     if (!centerId || pulsedRef.current || full.phase !== "ready" || !gdata || dims.w === 0) return;
-    let mounted = true; // как `alive` в эффекте local — без setState после анмаунта.
+    let mounted = true; // без setState после анмаунта (камера доводит асинхронно).
     let iv: ReturnType<typeof setInterval> | undefined;
     let endT: ReturnType<typeof setTimeout> | undefined;
     const startT = setTimeout(() => {
@@ -435,18 +415,19 @@ export function GraphScreen({
   return (
     <div
       style={{
-        height: "100vh",
+        // dvh, не vh: граф — фикс-вьюпорт; 100vh в мобильном WebView выше видимой
+        // области → страница скроллится. dvh = ровно видимая высота, скролла нет.
+        height: "100dvh",
         display: "flex",
         flexDirection: "column",
         paddingTop: "calc(4px + env(safe-area-inset-top,0))",
         // Таб-граф: место под нижний таб-бар. Граф из заметки (есть onBack) — без него.
-        paddingBottom:
-          mode === "full" && !onBack
-            ? "calc(92px + env(safe-area-inset-bottom,0))"
-            : "calc(12px + env(safe-area-inset-bottom,0))",
+        paddingBottom: !onBack
+          ? "calc(92px + env(safe-area-inset-bottom,0))"
+          : "calc(12px + env(safe-area-inset-bottom,0))",
       }}
     >
-      {/* Без заголовка (конвенция приложения). В локальном режиме — только «назад». */}
+      {/* Без заголовка (конвенция приложения). Граф из заметки — только «назад». */}
       {onBack && (
         <div style={{ padding: "0 16px", display: "flex", alignItems: "center", marginBottom: 8 }}>
           <button onClick={onBack} aria-label="назад" style={navBtn}>
@@ -455,7 +436,7 @@ export function GraphScreen({
         </div>
       )}
 
-      {mode === "full" && full.phase === "ready" && full.stale && (
+      {full.phase === "ready" && full.stale && (
         <div style={{ margin: "0 16px 10px", display: "flex", justifyContent: "center" }}>
           <button
             onClick={() => buildFull(true)}
@@ -487,7 +468,7 @@ export function GraphScreen({
         </div>
       )}
 
-      {mode === "full" && full.phase === "error" && (
+      {full.phase === "error" && (
         <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14, padding: "0 24px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)" }}>Не удалось построить граф</span>
           <button onClick={() => buildFull()} style={primaryBtn}>Повторить</button>
@@ -497,7 +478,7 @@ export function GraphScreen({
       {data && data.nodes.length === 0 && !loading && (
         <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", padding: "0 24px" }}>
           <span style={{ fontFamily: "var(--font-display)", fontStyle: "italic", fontSize: 14, color: "var(--fg-3)", textAlign: "center" }}>
-            {mode === "local" ? "У этой заметки пока нет связей" : "Связей пока нет"}
+            Связей пока нет
           </span>
         </div>
       )}
@@ -562,7 +543,7 @@ export function GraphScreen({
               position: "absolute",
               left: 12,
               right: 12,
-              bottom: mode === "full" ? 6 : 12,
+              bottom: 6,
               display: "flex",
               flexDirection: "column",
               gap: 8,
