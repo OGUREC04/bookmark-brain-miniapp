@@ -8,7 +8,7 @@ import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
 import { ThreadComposer } from "../components/ds/ThreadComposer";
 import { ThreadLog } from "../components/ds/ThreadLog";
-import { mergeEntriesById } from "../lib/thread";
+import { applyTranscriptionUpdates, mergeEntriesById } from "../lib/thread";
 import { BottomSheet } from "../components/ds/sheetPrimitives";
 import { api, type Bookmark, type Entry } from "../lib/api";
 import { hostOf, isWorkingStatus } from "../lib/adapters";
@@ -154,6 +154,23 @@ export function DetailScreen({
     );
   }, []);
 
+  // F3c — правка/удаление дописки. Бросают при ошибке: EntryBubble держит режим правки
+  // и показывает тост. Успех → локально заменяем/убираем запись (оптимистично).
+  const editEntry = useCallback(
+    async (id: string, body: string) => {
+      const updated = await api.entries.edit(bookmark.id, id, body);
+      setEntries((prev) => prev.map((e) => (e.id === id ? updated : e)));
+    },
+    [bookmark.id],
+  );
+  const deleteEntry = useCallback(
+    async (id: string) => {
+      await api.entries.remove(bookmark.id, id);
+      setEntries((prev) => prev.filter((e) => e.id !== id));
+    },
+    [bookmark.id],
+  );
+
   // F3d — thread-поллинг (DEC-11): пока в ленте есть запись 'transcribing', перечитываем
   // GET /thread, пока статус не станет терминальным. ОТДЕЛЬНО от note-level поллинга шапки
   // (App.tsx по ai_status всей заметки): тот голос-дописку не видит (другая сущность).
@@ -167,8 +184,9 @@ export function DetailScreen({
       fetching = true;
       try {
         const t = await api.entries.list(bookmark.id);
-        // merge (как первичная загрузка): не теряем дописку, добавленную пока тик был в полёте.
-        if (!cancelled) setEntries((prev) => mergeEntriesById(t.entries, prev));
+        // Обновляем ТОЛЬКО распознаваемые записи: поллинг не должен трогать остальные —
+        // иначе стейл-снапшот откатил бы локальную правку/воскресил удалённую (ревью F3c).
+        if (!cancelled) setEntries((prev) => applyTranscriptionUpdates(prev, t.entries));
       } catch {
         // временная ошибка сети — продолжаем поллить
       } finally {
@@ -499,7 +517,7 @@ export function DetailScreen({
                 Саммари выше не учитывает дописки
               </div>
             )}
-            <ThreadLog entries={entries} />
+            <ThreadLog entries={entries} onEdit={editEntry} onDelete={deleteEntry} onToast={onToast} />
           </div>
         )}
       </div>

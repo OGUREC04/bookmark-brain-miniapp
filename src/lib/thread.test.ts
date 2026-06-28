@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { Entry } from "./api";
-import { groupEntriesByDay, mergeEntriesById } from "./thread";
+import { applyTranscriptionUpdates, groupEntriesByDay, mergeEntriesById } from "./thread";
 
 function entry(id: string, created_at: string): Entry {
   return { id, kind: "user", body: id, created_at, edited_at: null };
+}
+
+function voice(id: string, status: "transcribing" | "done" | "failed", body = ""): Entry {
+  return { id, kind: "user", body, created_at: "2026-06-25T12:00:00Z", edited_at: null, entry_ai_status: status };
 }
 
 describe("groupEntriesByDay", () => {
@@ -67,5 +71,41 @@ describe("mergeEntriesById", () => {
   it("пустой prev → снапшот", () => {
     const snap = [entry("a", "2026-06-25T12:00:00Z")];
     expect(mergeEntriesById(snap, [])).toBe(snap);
+  });
+});
+
+describe("applyTranscriptionUpdates", () => {
+  it("transcribing → done: запись обновляется текстом из снапшота", () => {
+    const prev = [voice("v", "transcribing")];
+    const snap = [voice("v", "done", "распознанный текст")];
+    const next = applyTranscriptionUpdates(prev, snap);
+    expect(next[0].entry_ai_status).toBe("done");
+    expect(next[0].body).toBe("распознанный текст");
+  });
+
+  it("не трогает НЕ-распознаваемые записи (правка не откатывается стейл-снапшотом)", () => {
+    // Юзер поправил текстовую запись на 'новый'; стейл-снапшот поллинга держит 'старый'.
+    const prev: Entry[] = [{ ...entry("t", "2026-06-25T12:00:00Z"), body: "новый" }];
+    const snap: Entry[] = [{ ...entry("t", "2026-06-25T12:00:00Z"), body: "старый" }];
+    expect(applyTranscriptionUpdates(prev, snap)).toBe(prev); // тот же ref → нет ререндера
+    expect(applyTranscriptionUpdates(prev, snap)[0].body).toBe("новый");
+  });
+
+  it("удалённую запись не воскрешает (её нет в prev → снапшот игнорируется)", () => {
+    const prev = [voice("v", "transcribing")]; // 'd' уже удалена локально
+    const snap = [voice("v", "transcribing"), entry("d", "2026-06-25T13:00:00Z")];
+    expect(applyTranscriptionUpdates(prev, snap).map((e) => e.id)).toEqual(["v"]);
+  });
+
+  it("нечего обновлять (запись ещё transcribing в обоих) → тот же ref", () => {
+    const prev = [voice("v", "transcribing")];
+    const snap = [voice("v", "transcribing")];
+    expect(applyTranscriptionUpdates(prev, snap)).toBe(prev);
+  });
+
+  it("transcribing → failed обновляется", () => {
+    const prev = [voice("v", "transcribing")];
+    const snap = [voice("v", "failed")];
+    expect(applyTranscriptionUpdates(prev, snap)[0].entry_ai_status).toBe("failed");
   });
 });

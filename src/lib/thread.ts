@@ -27,6 +27,25 @@ export function mergeEntriesById(snapshot: Entry[], prev: Entry[]): Entry[] {
   return localExtra.length > 0 ? [...snapshot, ...localExtra] : snapshot;
 }
 
+/** Поллинг статуса голос-дописки: обновить в ленте ТОЛЬКО записи со статусом
+   'transcribing' их свежей версией из снапшота (распозналось → текст/done, или failed).
+   Остальные записи НЕ трогаем — правки/удаления локальны и авторитетны; иначе стейл-снапшот
+   поллинга (GET вылетел до коммита PATCH/DELETE) откатил бы правку или воскресил удалённую
+   запись (находки ревью F3c). Возвращает prev без изменений, если обновлять нечего. */
+export function applyTranscriptionUpdates(prev: Entry[], snapshot: Entry[]): Entry[] {
+  let changed = false;
+  const next = prev.map((e) => {
+    if (e.entry_ai_status !== "transcribing") return e;
+    const fresh = snapshot.find((s) => s.id === e.id);
+    if (fresh && (fresh.entry_ai_status !== e.entry_ai_status || fresh.body !== e.body)) {
+      changed = true;
+      return fresh;
+    }
+    return e;
+  });
+  return changed ? next : prev;
+}
+
 /** Группы дописок по дням в хронологическом порядке (старый день → новый). */
 export function groupEntriesByDay(entries: Entry[]): DayGroup[] {
   const groups: DayGroup[] = [];
