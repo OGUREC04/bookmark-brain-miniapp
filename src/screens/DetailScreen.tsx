@@ -390,7 +390,7 @@ export function DetailScreen({
           bookmark.raw_text &&
           bookmark.raw_text !== rawTitle &&
           !isUrl(bookmark.raw_text) && (
-            <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap" }}>
+            <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.55, margin: "0 0 22px", whiteSpace: "pre-wrap", overflowWrap: "break-word", wordBreak: "break-word" }}>
               {bookmark.raw_text}
             </p>
           )}
@@ -420,6 +420,8 @@ export function DetailScreen({
                   outline: "none",
                   resize: "none",
                   overflow: "hidden",
+                  overflowWrap: "break-word",
+                  wordBreak: "break-word",
                   fontFamily: "var(--font-ui)",
                   fontSize: 14.5,
                   lineHeight: 1.6,
@@ -443,7 +445,7 @@ export function DetailScreen({
                 style={{ cursor: "text" }}
               >
                 {bodyText ? (
-                  <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap" }}>
+                  <p style={{ fontFamily: "var(--font-ui)", fontSize: 14.5, color: "var(--fg-1)", lineHeight: 1.6, margin: 0, whiteSpace: "pre-wrap", overflowWrap: "break-word", wordBreak: "break-word" }}>
                     {bodyText}
                   </p>
                 ) : (
