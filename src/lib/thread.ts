@@ -16,6 +16,17 @@ function dayKey(iso: string): string {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
 
+/** Слить серверный снапшот ленты с локальными дописками, которых в нём ещё нет
+   (добавлены оптимистично, пока GET /thread был в полёте). По id: снапшот — источник
+   правды (правки/статусы записей), локальные «лишние» добавляем в конец (они новейшие).
+   Без этого поздний ответ первичной загрузки/поллинга затирал бы полной заменой только
+   что добавленную дописку — потеря данных (находка ревью F3d). Иммутабельно. */
+export function mergeEntriesById(snapshot: Entry[], prev: Entry[]): Entry[] {
+  const ids = new Set(snapshot.map((e) => e.id));
+  const localExtra = prev.filter((e) => !ids.has(e.id));
+  return localExtra.length > 0 ? [...snapshot, ...localExtra] : snapshot;
+}
+
 /** Группы дописок по дням в хронологическом порядке (старый день → новый). */
 export function groupEntriesByDay(entries: Entry[]): DayGroup[] {
   const groups: DayGroup[] = [];

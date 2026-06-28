@@ -6,8 +6,9 @@ import { cloneElement, useState, useRef, useCallback, useEffect } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
-import { Composer } from "../components/ds/Composer";
+import { ThreadComposer } from "../components/ds/ThreadComposer";
 import { ThreadLog } from "../components/ds/ThreadLog";
+import { mergeEntriesById } from "../lib/thread";
 import { BottomSheet } from "../components/ds/sheetPrimitives";
 import { api, type Bookmark, type Entry } from "../lib/api";
 import { hostOf, isWorkingStatus } from "../lib/adapters";
@@ -15,6 +16,9 @@ import { FLAGS } from "../lib/flags";
 import { formatRelativeDate } from "../lib/formatters";
 
 const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
+
+// Интервал thread-поллинга статуса голос-дописки (мс). Как note-level поллинг (App.tsx).
+const THREAD_POLL_MS = 3000;
 
 /** Русское склонение по числу: 1 связь, 2–4 связи, 5+ связей. */
 function pluralRu(n: number, one: string, few: string, many: string): string {
@@ -119,19 +123,19 @@ export function DetailScreen({
     };
   }, [bookmark.id, showAllRelated, onOpenRelated]);
 
-  // F3a/F3b — лента дописок (заметка-как-диалог). Грузим при открытии + дописываем снизу.
+  // F3a/F3b/F3d — лента дописок (заметка-как-диалог). Грузим при открытии; дописка
+  // (текст/голос) приходит из ThreadComposer через onPosted.
   const [entries, setEntries] = useState<Entry[]>([]);
-  const [appendDraft, setAppendDraft] = useState("");
-  const [posting, setPosting] = useState(false);
   useEffect(() => {
     if (!FLAGS.NOTES_LOG) return;
     let cancelled = false;
     setEntries([]); // не показываем дописки прошлой заметки, пока грузятся новые
-    setAppendDraft("");
     api.entries
       .list(bookmark.id)
       .then((t) => {
-        if (!cancelled) setEntries(t.entries);
+        // merge, не replace: медленная загрузка не должна затереть дописку, добавленную
+        // локально пока запрос был в полёте (находка ревью F3d — потеря данных).
+        if (!cancelled) setEntries((prev) => mergeEntriesById(t.entries, prev));
       })
       .catch(() => {
         // лента дописок некритична для экрана — молча
@@ -141,24 +145,41 @@ export function DetailScreen({
     };
   }, [bookmark.id]);
 
-  // F3b — дописать в ленту: POST → добавить в конец → прокрутить вниз к новой записи.
-  const appendEntry = async () => {
-    const body = appendDraft.trim();
-    if (!body || posting) return;
-    setPosting(true);
-    try {
-      const entry = await api.entries.create(bookmark.id, body);
-      setEntries((prev) => [...prev, entry]);
-      setAppendDraft("");
-      requestAnimationFrame(() =>
-        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }),
-      );
-    } catch {
-      onToast?.("Не удалось добавить запись");
-    } finally {
-      setPosting(false);
-    }
-  };
+  // F3d — новая дописка (текст или голос-черновик 'transcribing'): добавить в конец +
+  // прокрутить вниз к ней. Голос дальше распознаётся воркером — подхватит thread-поллинг.
+  const onPosted = useCallback((entry: Entry) => {
+    setEntries((prev) => [...prev, entry]);
+    requestAnimationFrame(() =>
+      window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }),
+    );
+  }, []);
+
+  // F3d — thread-поллинг (DEC-11): пока в ленте есть запись 'transcribing', перечитываем
+  // GET /thread, пока статус не станет терминальным. ОТДЕЛЬНО от note-level поллинга шапки
+  // (App.tsx по ai_status всей заметки): тот голос-дописку не видит (другая сущность).
+  const hasTranscribing = entries.some((e) => e.entry_ai_status === "transcribing");
+  useEffect(() => {
+    if (!FLAGS.NOTES_LOG || !hasTranscribing) return;
+    let cancelled = false;
+    let fetching = false; // не накладываем тики: медленный ответ не плодит параллельные запросы
+    const timer = setInterval(async () => {
+      if (fetching) return;
+      fetching = true;
+      try {
+        const t = await api.entries.list(bookmark.id);
+        // merge (как первичная загрузка): не теряем дописку, добавленную пока тик был в полёте.
+        if (!cancelled) setEntries((prev) => mergeEntriesById(t.entries, prev));
+      } catch {
+        // временная ошибка сети — продолжаем поллить
+      } finally {
+        fetching = false;
+      }
+    }, THREAD_POLL_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [bookmark.id, hasTranscribing]);
 
   // FLAGS.TEXT_EDIT — inline-правка тела текста (тикет 0rn). Доступна когда родитель дал onSaveText.
   // Тело = raw_text (каноничное поле; для голосовых бэк уточнит — см. бриф BOOKMARK-TEXT-EDIT).
@@ -469,7 +490,7 @@ export function DetailScreen({
           </div>
         )}
 
-        {/* F3a — лента дописок (заметка-как-диалог). Гейт NOTES_LOG: read-only, пока нет композера (F3b).
+        {/* Лента дописок (заметка-как-диалог): F3a чтение + F3d статусы голос-дописки.
             Тихий маркер edge#12: саммари построено до дописок и их не учитывает. */}
         {FLAGS.NOTES_LOG && entries.length > 0 && (
           <div style={{ marginTop: 24, paddingTop: 16, borderTop: "0.5px solid var(--border-1)" }}>
@@ -502,29 +523,10 @@ export function DetailScreen({
         </BottomSheet>
       )}
 
-      {/* F3b — закреплённый снизу композер дописок (заметка-как-диалог).
-          position:fixed — над safe-area; контент сверху имеет нижний отступ под него. */}
+      {/* F3b/F3d — закреплённый снизу композер дописок (текст + голос).
+          Контент сверху имеет нижний отступ под него (root paddingBottom). */}
       {FLAGS.NOTES_LOG && (
-        <div
-          style={{
-            position: "fixed",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: "8px 12px calc(8px + env(safe-area-inset-bottom, 0px))",
-            background: "var(--bg-page)",
-            borderTop: "0.5px solid var(--border-1)",
-            zIndex: 5,
-          }}
-        >
-          <Composer
-            value={appendDraft}
-            onChange={setAppendDraft}
-            onSend={appendEntry}
-            sending={posting}
-            placeholder="Дописать в заметку…"
-          />
-        </div>
+        <ThreadComposer bookmarkId={bookmark.id} onPosted={onPosted} onToast={onToast} />
       )}
     </div>
   );

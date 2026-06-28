@@ -7,19 +7,11 @@
 import { useState, useRef, useEffect, cloneElement } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { FLAGS } from "../lib/flags";
-import {
-  VoiceRecorder,
-  isSupported as voiceSupported,
-  filenameForMime,
-  isTooShort,
-  isTooLarge,
-} from "../lib/recorder";
 import { canSend } from "../lib/compose";
 import { openBotVoiceChat } from "../lib/telegram";
 import { Composer } from "../components/ds/Composer";
+import { useVoiceRecorder } from "../components/ds/useVoiceRecorder";
 import type { Bookmark } from "../lib/api";
-
-type VoiceState = "idle" | "recording" | "sending";
 
 // Статичные высоты бар-ов псевдо-волны (анимация — через .bb-wave-bar).
 const WAVE_BARS = [16, 26, 36, 20, 42, 28, 16, 34, 44, 22, 30, 38, 18, 28, 14, 36, 24, 16];
@@ -49,28 +41,31 @@ export function ComposeScreen({
   const [saving, setSaving] = useState(false);
 
   const voiceOn = FLAGS.VOICE_UPLOAD && !!onUploadMedia;
-  const canRecord = voiceOn && voiceSupported();
-  const [voiceState, setVoiceState] = useState<VoiceState>("idle");
-  const [elapsed, setElapsed] = useState(0);
-  const recorderRef = useRef<VoiceRecorder | null>(null);
-  const aliveRef = useRef(true);
 
-  // Уход с экрана во время записи → освобождаем микрофон.
+  // aliveRef — гард setSaving после await (текстовый save), чтобы не дёргать setState
+  // на размонтированном экране. Жизненный цикл микрофона целиком — в useVoiceRecorder.
+  const aliveRef = useRef(true);
   useEffect(() => {
     aliveRef.current = true;
     return () => {
       aliveRef.current = false;
-      recorderRef.current?.abort();
-      recorderRef.current = null;
     };
   }, []);
 
-  // Таймер записи (mm:ss).
-  useEffect(() => {
-    if (voiceState !== "recording") return;
-    const t = setInterval(() => setElapsed((s) => s + 1), 1000);
-    return () => clearInterval(t);
-  }, [voiceState]);
+  const { voiceState, elapsed, startRecording, cancelRecording, stopAndSend } = useVoiceRecorder({
+    enabled: voiceOn,
+    onToast,
+    // Старый iOS WebView без записи → фолбэк в чат бота (true = фолбэк сработал → без тоста).
+    onUnsupported: openBotVoiceChat,
+    // onCreated всегда уводит с экрана (родитель размонтирует) → остаёмся в sending,
+    // чтобы не мигнуть композером на кадр перед unmount.
+    keepSendingOnSuccess: !!onCreated,
+    onResult: async ({ blob, duration, filename }) => {
+      // voiceOn гарантирует onUploadMedia → запись стартует только при нём.
+      const bm = await onUploadMedia!(blob, { kind: "audio", duration, filename });
+      onCreated?.(bm); // родитель закроет экран и откроет заметку
+    },
+  });
 
   const save = async () => {
     if (!canSend(text, saving)) return;
@@ -79,84 +74,6 @@ export function ComposeScreen({
       await onSave?.(text.trim());
     } finally {
       if (aliveRef.current) setSaving(false);
-    }
-  };
-
-  const startRecording = async () => {
-    // Запись уже стартует/идёт — иначе дабл-тап плодит второй recorder и течёт mic-трек (HIGH из ревью).
-    if (recorderRef.current) return;
-    if (!canRecord) {
-      // Старый iOS WebView без записи → фолбэк в чат бота, иначе тост.
-      if (voiceOn && !openBotVoiceChat()) onToast?.("Запись голоса доступна в чате с ботом");
-      return;
-    }
-    const rec = new VoiceRecorder();
-    recorderRef.current = rec;
-    try {
-      await rec.start();
-      if (!aliveRef.current) {
-        rec.abort();
-        return;
-      }
-      setElapsed(0);
-      setVoiceState("recording");
-    } catch {
-      recorderRef.current = null;
-      onToast?.("Нет доступа к микрофону");
-    }
-  };
-
-  // Отмена записи — освободить микрофон и вернуться к набору (остаёмся на экране).
-  const cancelRecording = () => {
-    recorderRef.current?.abort();
-    recorderRef.current = null;
-    if (aliveRef.current) {
-      setVoiceState("idle");
-      setElapsed(0);
-    }
-  };
-
-  const stopAndSend = async () => {
-    const rec = recorderRef.current;
-    if (!rec) return;
-    setVoiceState("sending");
-    let result;
-    try {
-      result = await rec.stop();
-    } catch {
-      recorderRef.current = null;
-      if (aliveRef.current) setVoiceState("idle");
-      return;
-    }
-    recorderRef.current = null;
-    const { blob, mimeType, durationSec } = result;
-    if (isTooShort(blob, durationSec)) {
-      onToast?.("Слишком короткая запись");
-      if (aliveRef.current) setVoiceState("idle");
-      return;
-    }
-    if (isTooLarge(blob)) {
-      onToast?.("Запись слишком большая (максимум 25 МБ)");
-      if (aliveRef.current) setVoiceState("idle");
-      return;
-    }
-    if (!onUploadMedia) {
-      onToast?.("Голосовая загрузка недоступна");
-      if (aliveRef.current) setVoiceState("idle");
-      return;
-    }
-    try {
-      const bm = await onUploadMedia(blob, {
-        kind: "audio",
-        duration: durationSec,
-        filename: filenameForMime(mimeType),
-      });
-      // Фолбэк: если родитель не повесил onCreated — не зависаем в «sending».
-      if (onCreated) onCreated(bm); // родитель закроет экран и откроет заметку
-      else if (aliveRef.current) setVoiceState("idle");
-    } catch (e) {
-      onToast?.(e instanceof Error ? e.message : "Не удалось отправить голос");
-      if (aliveRef.current) setVoiceState("idle");
     }
   };
 
