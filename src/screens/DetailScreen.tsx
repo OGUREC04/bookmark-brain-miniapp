@@ -6,6 +6,7 @@ import { cloneElement, useState, useRef, useCallback, useEffect } from "react";
 import { Icons, ExtraIcons } from "../components/ds/icons";
 import { TaskListEditor } from "../components/ds/TaskListEditor";
 import { RelatedSection, type RelatedRow } from "../components/ds/RelatedSection";
+import { Composer } from "../components/ds/Composer";
 import { ThreadLog } from "../components/ds/ThreadLog";
 import { BottomSheet } from "../components/ds/sheetPrimitives";
 import { api, type Bookmark, type Entry } from "../lib/api";
@@ -118,12 +119,15 @@ export function DetailScreen({
     };
   }, [bookmark.id, showAllRelated, onOpenRelated]);
 
-  // F3a — лента дописок (заметка-как-диалог). Грузим при открытии заметки (флаг NOTES_LOG).
+  // F3a/F3b — лента дописок (заметка-как-диалог). Грузим при открытии + дописываем снизу.
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [appendDraft, setAppendDraft] = useState("");
+  const [posting, setPosting] = useState(false);
   useEffect(() => {
     if (!FLAGS.NOTES_LOG) return;
     let cancelled = false;
     setEntries([]); // не показываем дописки прошлой заметки, пока грузятся новые
+    setAppendDraft("");
     api.entries
       .list(bookmark.id)
       .then((t) => {
@@ -136,6 +140,25 @@ export function DetailScreen({
       cancelled = true;
     };
   }, [bookmark.id]);
+
+  // F3b — дописать в ленту: POST → добавить в конец → прокрутить вниз к новой записи.
+  const appendEntry = async () => {
+    const body = appendDraft.trim();
+    if (!body || posting) return;
+    setPosting(true);
+    try {
+      const entry = await api.entries.create(bookmark.id, body);
+      setEntries((prev) => [...prev, entry]);
+      setAppendDraft("");
+      requestAnimationFrame(() =>
+        window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "smooth" }),
+      );
+    } catch {
+      onToast?.("Не удалось добавить запись");
+    } finally {
+      setPosting(false);
+    }
+  };
 
   // FLAGS.TEXT_EDIT — inline-правка тела текста (тикет 0rn). Доступна когда родитель дал onSaveText.
   // Тело = raw_text (каноничное поле; для голосовых бэк уточнит — см. бриф BOOKMARK-TEXT-EDIT).
@@ -204,7 +227,7 @@ export function DetailScreen({
   }, []);
 
   return (
-    <div style={{ padding: "4px 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
+    <div style={{ padding: FLAGS.NOTES_LOG ? "4px 0 calc(96px + env(safe-area-inset-bottom, 0px))" : "4px 0 calc(74px + env(safe-area-inset-bottom, 0px))" }}>
       {/* nav */}
       <div style={{ padding: "0 16px", display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
         <button onClick={onBack} aria-label="назад" style={navBtn}>
@@ -477,6 +500,31 @@ export function DetailScreen({
             />
           </div>
         </BottomSheet>
+      )}
+
+      {/* F3b — закреплённый снизу композер дописок (заметка-как-диалог).
+          position:fixed — над safe-area; контент сверху имеет нижний отступ под него. */}
+      {FLAGS.NOTES_LOG && (
+        <div
+          style={{
+            position: "fixed",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            padding: "8px 12px calc(8px + env(safe-area-inset-bottom, 0px))",
+            background: "var(--bg-page)",
+            borderTop: "0.5px solid var(--border-1)",
+            zIndex: 5,
+          }}
+        >
+          <Composer
+            value={appendDraft}
+            onChange={setAppendDraft}
+            onSend={appendEntry}
+            sending={posting}
+            placeholder="Дописать в заметку…"
+          />
+        </div>
       )}
     </div>
   );
