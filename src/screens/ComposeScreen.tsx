@@ -10,16 +10,13 @@ import { FLAGS } from "../lib/flags";
 import { canSend } from "../lib/compose";
 import { openBotVoiceChat } from "../lib/telegram";
 import { Composer } from "../components/ds/Composer";
+import { GLYPH_BTN_STYLE } from "../components/ds/atoms";
 import { useVoiceRecorder } from "../components/ds/useVoiceRecorder";
+import { fmtElapsed } from "../lib/formatters";
 import type { Bookmark } from "../lib/api";
 
 // Статичные высоты бар-ов псевдо-волны (анимация — через .bb-wave-bar).
 const WAVE_BARS = [16, 26, 36, 20, 42, 28, 16, 34, 44, 22, 30, 38, 18, 28, 14, 36, 24, 16];
-
-function fmtElapsed(sec: number): string {
-  const m = Math.floor(sec / 60);
-  return `${m}:${String(sec % 60).padStart(2, "0")}`;
-}
 
 export function ComposeScreen({
   onClose,
@@ -79,17 +76,6 @@ export function ComposeScreen({
 
   const recording = voiceState === "recording";
   const sending = voiceState === "sending";
-
-  // Глиф-кнопка по DS: скруглённый квадрат (не круг).
-  const glyphBtn = {
-    width: 36,
-    height: 36,
-    borderRadius: 12,
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    flexShrink: 0,
-  } as const;
 
   return (
     <div
@@ -151,7 +137,7 @@ export function ComposeScreen({
               <button
                 type="button"
                 aria-label="остановить и отправить"
-                onClick={stopAndSend}
+                onClick={() => void stopAndSend()}
                 style={{ height: 48, borderRadius: 24, padding: "0 22px", display: "flex", alignItems: "center", justifyContent: "center", gap: 8, background: "var(--brand-primary)", border: "none", color: "var(--fg-on-brand)", fontFamily: "var(--font-ui)", fontSize: 15, fontWeight: 500, letterSpacing: "-0.005em", cursor: "pointer", boxShadow: "var(--shadow-fab)" }}
               >
                 {cloneElement(ExtraIcons.send, { size: 19, sw: 1.7 } as never)}
@@ -200,7 +186,7 @@ export function ComposeScreen({
                     type="button"
                     aria-label="вложение"
                     disabled
-                    style={{ ...glyphBtn, background: "transparent", border: "none", color: "var(--fg-4)", cursor: "not-allowed" }}
+                    style={{ ...GLYPH_BTN_STYLE, background: "transparent", border: "none", color: "var(--fg-4)", cursor: "not-allowed" }}
                   >
                     {cloneElement(Icons.plus, { size: 20, sw: 2 } as never)}
                   </button>
@@ -209,7 +195,7 @@ export function ComposeScreen({
                       type="button"
                       aria-label="записать голос"
                       onClick={() => void startRecording()}
-                      style={{ ...glyphBtn, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
+                      style={{ ...GLYPH_BTN_STYLE, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
                     >
                       {cloneElement(ExtraIcons.mic, { size: 20, sw: 1.6 } as never)}
                     </button>

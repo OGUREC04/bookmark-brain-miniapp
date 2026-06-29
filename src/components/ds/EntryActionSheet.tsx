@@ -25,7 +25,7 @@ export function EntryActionSheet({
     { id: "del", icon: ExtraIcons.trash, label: "Удалить", on: onDelete, danger: true },
   ];
   return (
-    <BottomSheet onDismiss={onDismiss}>
+    <BottomSheet onDismiss={onDismiss} ariaLabel="Действия с записью">
       <div style={{ padding: "4px 6px 4px" }}>
         {items
           .filter((it) => it.on)

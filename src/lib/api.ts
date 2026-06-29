@@ -24,7 +24,9 @@ async function fetchNewToken(): Promise<string> {
   // ONLY accept this if its triple-gated DEV_AUTH_BYPASS is on; in prod this
   // path is harmless because the backend rejects every "dev:" init_data.
   let initData = getInitData();
-  if (!initData && typeof localStorage !== "undefined") {
+  // DEV-фолбэк для headless-E2E. Гейтим на import.meta.env.DEV → Vite вырежет ветку из
+  // prod-бандла (защита не зависит от серверного флага; XSS не сможет подсунуть identity).
+  if (!initData && import.meta.env.DEV && typeof localStorage !== "undefined") {
     initData = localStorage.getItem("__dev_init_data") ?? "";
   }
   if (!initData) {
@@ -89,7 +91,9 @@ async function withAuth<T>(fetcher: (token: string) => Promise<Response>): Promi
   if (res.status === 204) return undefined as T;
   if (!res.ok) {
     const err = await res.json().catch(() => ({ detail: "Request failed" }));
-    throw new Error(err.detail || "Request failed");
+    // Обрезаем detail: чтобы случайный многострочный стектрейс с бэка не протёк в тост целиком.
+    const detail = typeof err.detail === "string" ? err.detail.slice(0, 200) : "";
+    throw new Error(detail || "Request failed");
   }
   return res.json();
 }

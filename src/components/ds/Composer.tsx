@@ -2,7 +2,8 @@
    Вынесено из ComposeScreen (F2). Авто-рост textarea, расширение при длинном
    тексте (кнопки уходят вниз — паттерн Meta/Gemini). Запись голоса/вложение —
    через слот `lead` (проп); сам Composer про них не знает. Используется в
-   ComposeScreen (lead = 📎+🎤) и в ленте заметки для дописок (F3b, без lead). */
+   ComposeScreen (lead = 📎+🎤) и в ленте заметки через ThreadComposer
+   (lead = 🎤 при FLAGS.VOICE_UPLOAD, иначе без lead). */
 import { cloneElement, useEffect, useRef, type ReactNode } from "react";
 import { canSend, shouldExpandComposer } from "../../lib/compose";
 import { ExtraIcons } from "./icons";

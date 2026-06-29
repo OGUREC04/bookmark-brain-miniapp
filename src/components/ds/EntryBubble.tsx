@@ -146,8 +146,14 @@ export function EntryBubble({
   };
 
   const copy = () => {
+    // clipboard может отсутствовать (HTTP-контекст / старый WebView) — иначе тап по
+    // «Копировать» молча ничего не делал бы (нет ни успеха, ни ошибки).
+    if (!navigator.clipboard) {
+      onToast?.("Копирование недоступно");
+      return;
+    }
     navigator.clipboard
-      ?.writeText(entry.body)
+      .writeText(entry.body)
       .then(() => onToast?.("Скопировано"))
       .catch(() => onToast?.("Не удалось скопировать"));
   };
@@ -211,7 +217,7 @@ export function EntryBubble({
             onContextMenu={onContextMenu}
             role={interactive ? "button" : undefined}
             tabIndex={interactive ? 0 : undefined}
-            aria-haspopup={interactive ? "menu" : undefined}
+            aria-haspopup={interactive ? "dialog" : undefined}
             onKeyDown={
               interactive
                 ? (e) => {

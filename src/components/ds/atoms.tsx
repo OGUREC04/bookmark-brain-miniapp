@@ -3,6 +3,18 @@
 import { cloneElement, type ReactNode, type CSSProperties } from "react";
 import { Icons } from "./icons";
 
+/** Глиф-кнопка DS: скруглённый квадрат 36×36 для иконок в композерах (📎/🎤).
+   Общая для ComposeScreen и ThreadComposer (DRY). */
+export const GLYPH_BTN_STYLE = {
+  width: 36,
+  height: 36,
+  borderRadius: 12,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flexShrink: 0,
+} as const;
+
 /* ─── editorial glyph (Lora italic char as icon) ─── */
 export function Glyph({
   ch,

@@ -1,7 +1,7 @@
 /* Bottom Sheets — ported 1:1 from docs/design-system-miniapp/app/Sheets.jsx.
    Visual inline styles verbatim; data wired via props.
    Shared primitives used across all sheets. */
-import { useEffect, cloneElement, type ReactNode } from "react";
+import { useEffect, useRef, cloneElement, type ReactNode } from "react";
 import { Icons } from "./icons";
 
 export function BottomSheet({
@@ -10,6 +10,7 @@ export function BottomSheet({
   paddingBottom = 24,
   height = "auto",
   minHeight,
+  ariaLabel,
 }: {
   children: ReactNode;
   onDismiss?: () => void;
@@ -17,13 +18,24 @@ export function BottomSheet({
   height?: string;
   /** Минимальная высота контента шторки (чтобы короткие списки не были тесными). */
   minHeight?: number;
+  /** Доступное имя диалога для скринридера (role=dialog без имени анонсируется безымянно). */
+  ariaLabel?: string;
 }) {
-  // Залочить скролл фона пока шторка открыта (иначе подложка скроллится под ней).
+  // onDismiss может менять идентичность между рендерами → читаем через ref, чтобы
+  // эффект остался с deps [] (иначе восстановление overflow ломается на нестабильном проп).
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  // Залочить скролл фона + закрытие по Escape (раньше шторку нельзя было закрыть с клавиатуры).
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") dismissRef.current?.();
+    };
+    document.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prev;
+      document.removeEventListener("keydown", onKey);
     };
   }, []);
 
@@ -56,6 +68,7 @@ export function BottomSheet({
         <div
           role="dialog"
           aria-modal="true"
+          aria-label={ariaLabel}
           style={{
             background: "rgba(255,252,246,0.92)",
             backdropFilter: "blur(32px) saturate(160%)",

@@ -6,31 +6,16 @@
    запись entry_ai_status='transcribing'; поллинг статуса — в DetailScreen (DEC-11). */
 import { cloneElement, useEffect, useRef, useState } from "react";
 import { Composer } from "./Composer";
-import { Pulse } from "./atoms";
+import { Pulse, GLYPH_BTN_STYLE } from "./atoms";
 import { ExtraIcons } from "./icons";
 import { useVoiceRecorder } from "./useVoiceRecorder";
 import { api, type Entry } from "../../lib/api";
 import { FLAGS } from "../../lib/flags";
+import { fmtElapsed } from "../../lib/formatters";
 
 // Статичные высоты бар-ов псевдо-волны (анимация — .bb-wave-bar). Короче, чем в
 // ComposeScreen: компактная строка, не полноэкранная запись.
 const WAVE_BARS = [12, 20, 28, 16, 32, 22, 14, 26, 18, 24];
-
-function fmtElapsed(sec: number): string {
-  const m = Math.floor(sec / 60);
-  return `${m}:${String(sec % 60).padStart(2, "0")}`;
-}
-
-// Глиф-кнопка по DS: скруглённый квадрат (как в ComposeScreen).
-const glyphBtn = {
-  width: 36,
-  height: 36,
-  borderRadius: 12,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  flexShrink: 0,
-} as const;
 
 export function ThreadComposer({
   bookmarkId,
@@ -120,7 +105,7 @@ export function ThreadComposer({
             aria-label="отмена записи"
             onClick={cancelRecording}
             disabled={sending}
-            style={{ ...glyphBtn, background: "transparent", border: "none", color: "var(--fg-3)", cursor: sending ? "default" : "pointer", opacity: sending ? 0.4 : 1 }}
+            style={{ ...GLYPH_BTN_STYLE, background: "transparent", border: "none", color: "var(--fg-3)", cursor: sending ? "default" : "pointer", opacity: sending ? 0.4 : 1 }}
           >
             {cloneElement(ExtraIcons.trash, { size: 19, sw: 1.6 } as never)}
           </button>
@@ -184,7 +169,7 @@ export function ThreadComposer({
                 type="button"
                 aria-label="записать голос"
                 onClick={() => void startRecording()}
-                style={{ ...glyphBtn, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
+                style={{ ...GLYPH_BTN_STYLE, background: "var(--brand-primary-tint)", border: "none", color: "var(--brand-primary-press)", cursor: "pointer" }}
               >
                 {cloneElement(ExtraIcons.mic, { size: 20, sw: 1.6 } as never)}
               </button>

@@ -114,3 +114,9 @@ export function formatReminderDate(iso: string): string {
 export function formatProgress(done: number, total: number): string {
   return `${done}/${total}`;
 }
+
+/** Длительность записи в «m:ss» из секунд (таймер голосовой записи). */
+export function fmtElapsed(sec: number): string {
+  const m = Math.floor(sec / 60);
+  return `${m}:${pad2(sec % 60)}`;
+}

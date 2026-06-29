@@ -24,11 +24,15 @@ import {
   type SheetTarget,
   type SpaceOption,
 } from "./components/ds/Sheets";
-import { api, type Bookmark, type Folder, type Recurring } from "./lib/api";
+import { api, AuthExpiredError, type Bookmark, type Folder, type Recurring } from "./lib/api";
 import { FLAGS } from "./lib/flags";
 import { targetOf, groupReminders, isWorkingStatus } from "./lib/adapters";
 import { hapticImpact, hapticNotify, getBackButton } from "./lib/telegram";
 import { fmtRecurrence } from "./lib/recurring";
+
+// Интервал note-level поллинга обработки заметки (мс) + лимит подряд сбоев (как в DetailScreen).
+const NOTE_POLL_MS = 3000;
+const MAX_NOTE_POLL_FAILS = 5;
 
 type RemRow = {
   id: string;
@@ -246,20 +250,23 @@ export function App() {
   useEffect(() => {
     if (!detailBookmark || !isWorkingStatus(detailBookmark.ai_status)) return;
     let cancelled = false;
+    let fails = 0;
     const id = detailBookmark.id;
     const timer = setInterval(async () => {
       try {
         const fresh = await api.getBookmark(id);
         if (cancelled) return;
+        fails = 0;
         replaceDetail(fresh);
         if (!isWorkingStatus(fresh.ai_status)) {
           clearInterval(timer);
           reload();
         }
-      } catch {
-        /* временная ошибка сети — продолжаем поллить */
+      } catch (e) {
+        // Токен умер (401) или бэк стабильно недоступен — не молотим вечно раз в 3с.
+        if (e instanceof AuthExpiredError || ++fails >= MAX_NOTE_POLL_FAILS) clearInterval(timer);
       }
-    }, 3000);
+    }, NOTE_POLL_MS);
     return () => {
       cancelled = true;
       clearInterval(timer);
@@ -367,8 +374,8 @@ export function App() {
               void refreshDetail(top.bookmark.id);
             }}
             onToast={setToast}
-            // FLAGS.TEXT_EDIT (тикет 0rn): сохранить тело текста → refetch (ai_status может
-            // переключиться в processing) → обновить detail и ленту.
+            // FLAGS.TEXT_EDIT (тикет 0rn): PATCH тела текста возвращает обновлённую заметку
+            // (ai_status может стать processing) — кладём её в detail, перезагружаем ленту.
             onSaveText={
               FLAGS.TEXT_EDIT
                 ? async (rawText: string) => {
@@ -574,6 +581,8 @@ export function App() {
 
       {toast && (
         <div
+          role="status"
+          aria-live="polite"
           style={{
             position: "fixed",
             left: "50%",

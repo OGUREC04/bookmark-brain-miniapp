@@ -16,9 +16,9 @@ export function ThreadLog({
   onToast,
 }: {
   entries: Entry[];
-  /** F3c: сохранить правку дописки. undefined = правка/удаление выключены. */
+  /** F3c: сохранить правку дописки. undefined = правка выключена (удаление — отдельный onDelete). */
   onEdit?: (id: string, body: string) => Promise<void>;
-  /** F3c: удалить дописку. */
+  /** F3c: удалить дописку. undefined = удаление выключено. */
   onDelete?: (id: string) => Promise<void>;
   onToast?: (msg: string) => void;
 }) {

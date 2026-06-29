@@ -111,7 +111,10 @@ export function useVoiceRecorder({
     try {
       result = await rec.stop();
     } catch {
+      // На iOS rec.stop() может бросить (InvalidStateError, трек закрыт) — иначе запись
+      // молча терялась бы без сигнала пользователю.
       recorderRef.current = null;
+      onToast?.("Не удалось завершить запись");
       if (aliveRef.current) setVoiceState("idle");
       return;
     }

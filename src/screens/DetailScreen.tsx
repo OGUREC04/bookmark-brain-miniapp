@@ -10,7 +10,7 @@ import { ThreadComposer } from "../components/ds/ThreadComposer";
 import { ThreadLog } from "../components/ds/ThreadLog";
 import { applyTranscriptionUpdates, mergeEntriesById } from "../lib/thread";
 import { BottomSheet } from "../components/ds/sheetPrimitives";
-import { api, type Bookmark, type Entry } from "../lib/api";
+import { api, AuthExpiredError, type Bookmark, type Entry } from "../lib/api";
 import { hostOf, isWorkingStatus } from "../lib/adapters";
 import { FLAGS } from "../lib/flags";
 import { formatRelativeDate } from "../lib/formatters";
@@ -19,6 +19,8 @@ const isUrl = (s: string) => /^https?:\/\//i.test(s.trim());
 
 // Интервал thread-поллинга статуса голос-дописки (мс). Как note-level поллинг (App.tsx).
 const THREAD_POLL_MS = 3000;
+// Сколько подряд сетевых сбоев терпит поллинг, прежде чем остановиться (не молотить вечно).
+const MAX_THREAD_POLL_FAILS = 5;
 
 /** Русское склонение по числу: 1 связь, 2–4 связи, 5+ связей. */
 function pluralRu(n: number, one: string, few: string, many: string): string {
@@ -31,7 +33,8 @@ function pluralRu(n: number, one: string, few: string, many: string): string {
 
 function openLink(url: string) {
   // Guard against javascript:/data: schemes sneaking in via stored bookmark.url.
-  if (!/^https?:\/\//i.test(url)) return;
+  // trim() — как в isUrl(): иначе валидный URL с ведущим пробелом молча не откроется.
+  if (!/^https?:\/\//i.test(url.trim())) return;
   const tg = window.Telegram?.WebApp as { openLink?: (u: string) => void } | undefined;
   if (tg?.openLink) tg.openLink(url);
   else window.open(url, "_blank", "noopener,noreferrer");
@@ -138,7 +141,9 @@ export function DetailScreen({
         if (!cancelled) setEntries((prev) => mergeEntriesById(t.entries, prev));
       })
       .catch(() => {
-        // лента дописок некритична для экрана — молча
+        // Шапка заметки приходит из prop bookmark и остаётся рабочей — лента некритична,
+        // но не молчим: иначе «ошибка загрузки» неотличима от «дописок ещё нет» (ревью).
+        if (!cancelled) onToast?.("Не удалось загрузить дописки");
       });
     return () => {
       cancelled = true;
@@ -179,6 +184,7 @@ export function DetailScreen({
     if (!FLAGS.NOTES_LOG || !hasTranscribing) return;
     let cancelled = false;
     let fetching = false; // не накладываем тики: медленный ответ не плодит параллельные запросы
+    let fails = 0;
     const timer = setInterval(async () => {
       if (fetching) return;
       fetching = true;
@@ -187,8 +193,10 @@ export function DetailScreen({
         // Обновляем ТОЛЬКО распознаваемые записи: поллинг не должен трогать остальные —
         // иначе стейл-снапшот откатил бы локальную правку/воскресил удалённую (ревью F3c).
         if (!cancelled) setEntries((prev) => applyTranscriptionUpdates(prev, t.entries));
-      } catch {
-        // временная ошибка сети — продолжаем поллить
+        fails = 0;
+      } catch (e) {
+        // Токен умер (401) или бэк стабильно недоступен — не молотим вечно раз в 3с (ревью).
+        if (e instanceof AuthExpiredError || ++fails >= MAX_THREAD_POLL_FAILS) clearInterval(timer);
       } finally {
         fetching = false;
       }
@@ -253,6 +261,10 @@ export function DetailScreen({
   bodyTextRef.current = bodyText;
   const onSaveTextRef = useRef(onSaveText);
   onSaveTextRef.current = onSaveText;
+  // onToast — это setToast РОДИТЕЛЯ (App), который при popView НЕ размонтируется → тост из
+  // cleanup достижим (в отличие от локального setState). Через ref — последнее значение.
+  const onToastRef = useRef(onToast);
+  onToastRef.current = onToast;
   useEffect(() => {
     return () => {
       if (!editingRef.current) return;
@@ -260,8 +272,9 @@ export function DetailScreen({
       const save = onSaveTextRef.current;
       if (!next || next === bodyTextRef.current.trim() || !save || savingRef.current === next) return;
       savingRef.current = next;
-      // fire-and-forget: компонент уже уходит, состояние не трогаем (нет setState после unmount).
-      void save(next).catch(() => {});
+      // fire-and-forget: компонент уже уходит, локальный state не трогаем. Но об ошибке
+      // сигналим через родительский тост — иначе правка теряется на hard-back молча (ревью).
+      void save(next).catch(() => onToastRef.current?.("Не удалось сохранить — текст не сохранён"));
     };
   }, []);
 
@@ -487,8 +500,12 @@ export function DetailScreen({
             <button
               aria-label="скопировать ссылку"
               onClick={() => {
+                if (!navigator.clipboard) {
+                  onToast?.("Копирование недоступно");
+                  return;
+                }
                 navigator.clipboard
-                  ?.writeText(bookmark.url!)
+                  .writeText(bookmark.url!)
                   .then(() => onToast?.("Ссылка скопирована"))
                   .catch(() => onToast?.("Не удалось скопировать"));
               }}

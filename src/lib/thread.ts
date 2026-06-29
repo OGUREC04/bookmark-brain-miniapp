@@ -46,14 +46,22 @@ export function applyTranscriptionUpdates(prev: Entry[], snapshot: Entry[]): Ent
   return changed ? next : prev;
 }
 
-/** Группы дописок по дням в хронологическом порядке (старый день → новый). */
+/** Группы дописок по дням в хронологическом порядке (старый день → новый).
+   Аккумулируем записи дня в локальный массив и кладём готовую группу в результат при
+   смене дня — НЕ мутируем уже отданный объект группы (конвенция иммутабельности). */
 export function groupEntriesByDay(entries: Entry[]): DayGroup[] {
   const groups: DayGroup[] = [];
+  let curKey: string | null = null;
+  let cur: Entry[] = [];
   for (const e of entries) {
     const key = dayKey(e.created_at);
-    const last = groups[groups.length - 1];
-    if (last && last.key === key) last.entries.push(e);
-    else groups.push({ key, entries: [e] });
+    if (key !== curKey) {
+      if (cur.length > 0) groups.push({ key: curKey as string, entries: cur });
+      curKey = key;
+      cur = [];
+    }
+    cur.push(e); // локальный аккумулятор, ещё не в groups
   }
+  if (cur.length > 0) groups.push({ key: curKey as string, entries: cur });
   return groups;
 }
