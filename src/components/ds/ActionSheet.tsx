@@ -50,7 +50,7 @@ export function ActionSheet({
               background: "transparent",
               border: "none",
               cursor: "pointer",
-              color: "danger" in it && it.danger ? "var(--semantic-error, #8A2A20)" : "var(--fg-1)",
+              color: "danger" in it && it.danger ? "var(--semantic-error, #B5483A)" : "var(--fg-1)",
               textAlign: "left",
             }}
           >
@@ -59,11 +59,11 @@ export function ActionSheet({
                 width: 34,
                 height: 34,
                 borderRadius: 10,
-                background: "danger" in it && it.danger ? "rgba(138,42,32,0.08)" : "rgba(234,227,207,0.55)",
+                background: "danger" in it && it.danger ? "rgba(181,72,58,0.08)" : "rgba(234,227,207,0.55)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                color: "danger" in it && it.danger ? "var(--semantic-error, #8A2A20)" : "var(--brand-primary-press)",
+                color: "danger" in it && it.danger ? "var(--semantic-error, #B5483A)" : "var(--brand-primary-press)",
                 flexShrink: 0,
               }}
             >

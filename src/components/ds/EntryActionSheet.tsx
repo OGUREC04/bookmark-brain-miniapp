@@ -42,7 +42,7 @@ export function EntryActionSheet({
                 background: "transparent",
                 border: "none",
                 cursor: "pointer",
-                color: it.danger ? "var(--semantic-error, #8A2A20)" : "var(--fg-1)",
+                color: it.danger ? "var(--semantic-error, #B5483A)" : "var(--fg-1)",
                 textAlign: "left",
               }}
             >
@@ -51,11 +51,11 @@ export function EntryActionSheet({
                   width: 34,
                   height: 34,
                   borderRadius: 10,
-                  background: it.danger ? "rgba(138,42,32,0.08)" : "rgba(234,227,207,0.55)",
+                  background: it.danger ? "rgba(181,72,58,0.08)" : "rgba(234,227,207,0.55)",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  color: it.danger ? "var(--semantic-error, #8A2A20)" : "var(--brand-primary-press)",
+                  color: it.danger ? "var(--semantic-error, #B5483A)" : "var(--brand-primary-press)",
                   flexShrink: 0,
                 }}
               >

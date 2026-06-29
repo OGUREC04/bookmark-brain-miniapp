@@ -365,7 +365,7 @@ function MenuItem({
         borderRadius: 12,
         cursor: "pointer",
         textAlign: "left",
-        color: danger ? "var(--danger, #C2554D)" : "var(--fg-1)",
+        color: danger ? "var(--semantic-error, #B5483A)" : "var(--fg-1)",
         fontFamily: "var(--font-ui)",
         fontSize: 15,
         fontWeight: 500,

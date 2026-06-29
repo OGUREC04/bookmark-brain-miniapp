@@ -279,10 +279,23 @@
 
   --tag-2: #C18840; --tag-3: #4F6A7A; --tag-4: #8A5C8C;
   --tag-5: #B5483A; --tag-6: #6B7A3F; --tag-7: #C84B5A; --tag-8: #8E908A;
+
+  /* Semantic — echo lacked these, so components fell back to inline literals
+     (giving 3 different reds for «Удалить»). Canonical warm set = DESIGN.md. */
+  --semantic-success: #5A8A56;
+  --semantic-warn: #C49454;
+  --semantic-error: #B5483A;
+  --semantic-info: #5A7A8A;
+
+  /* Warm low-alpha fills (were referenced as --fill-2 via inline fallbacks). */
+  --fill-1: rgba(60, 40, 25, 0.04);
+  --fill-2: rgba(60, 40, 25, 0.06);
+  --fill-3: rgba(60, 40, 25, 0.08);
 }
 
-/* — Default echo = G1 forest — */
-[data-theme="echo"],
+/* — G1 forest: opt-in only. Bare `echo` must NOT map here — it resolves to
+   sage (locked baseline) below. Listing `echo` here too made the active accent
+   order-dependent in the cascade (a brand-to-green regression risk). */
 [data-theme="echo-forest"] {
   --brand-primary: #1F5A3A;
   --brand-primary-hover: #174A30;

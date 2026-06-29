@@ -102,7 +102,7 @@ function SettingsCard({ rows }: { rows: SettingRow[] }) {
               fontSize: 11,
               fontWeight: 500,
               color: "var(--fg-4)",
-              background: "var(--fill-2, rgba(60,40,25,0.05))",
+              background: "var(--fill-2, rgba(60,40,25,0.06))",
               padding: "2px 8px",
               borderRadius: 999,
               flexShrink: 0,
