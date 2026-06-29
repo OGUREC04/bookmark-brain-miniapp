@@ -18,3 +18,7 @@ dist/
 
 # vite cache
 .vite/
+
+# vendored agent skills (re-install: npx skills experimental_install / npx impeccable install)
+.claude/skills/
+.agents/
